@@ -1,0 +1,27 @@
+---
+
+- hosts: locals
+  roles:
+    - role: clayman74.digitalocean-provision
+      digitalocean_provision_inventory_group: "{{ groups['cloud'] }}"
+
+    - role: app
+      build: yes
+
+
+- hosts: cloud
+  pre_tasks:
+    - name: Generage required passwords
+      set_fact:
+        postgresql_password: "{{ lookup('password', lookup('env','HOME') + '/.credentials/' + inventory_hostname + '/postgresql/password length=20') }}"
+
+        app_secret_key: "{{ lookup('password', lookup('env','HOME') + '/.credentials/' + inventory_hostname + '/apps/' + app_name + '/secret_key length=20') }}"
+        app_postgresql_password: "{{ lookup('password', lookup('env','HOME') + '/.credentials/' + inventory_hostname + '/apps/' + app_name + '/postgres_password length=20') }}"
+
+  roles:
+    - role: consul
+    - role: loadbalancer
+    - role: clayman74.postgresql
+    - role: app
+      prepare: yes
+      deploy: yes

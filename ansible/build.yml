@@ -1,0 +1,6 @@
+---
+
+- hosts: locals
+  roles:
+    - role: app
+      build: yes

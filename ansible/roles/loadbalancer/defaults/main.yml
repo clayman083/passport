@@ -1,0 +1,7 @@
+---
+
+loadbalancer_image: ''
+loadbalancer_container_name: 'loadbalancer'
+loadbalancer_networks: {}
+loadbalancer_webroot_path: '/var/www'
+loadbalancer_owner_email: ''

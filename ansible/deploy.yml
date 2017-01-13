@@ -1,0 +1,15 @@
+---
+
+- hosts: locals
+  roles:
+    - role: clayman74.digitalocean-provision
+      digitalocean_provision_inventory_group: "{{ groups['cloud'] }}"
+
+    - role: app
+      build: yes
+
+
+- hosts: cloud
+  roles:
+    - role: app
+      deploy: yes

@@ -1,0 +1,38 @@
+---
+
+build: false
+deploy: false
+prepare: false
+
+app_name: ''
+
+# docker image settings
+app_package: ''
+app_image: ''
+app_container_name: ''
+app_server_port: 5000
+
+# database settings
+app_postgresql_user: 'postgres'
+app_postgresql_password: 'postgres'
+app_postgresql_database: 'postgres'
+app_postgresql_host: 'postgres'
+app_postgresql_port: 5432
+
+# consul settings
+app_consul_host: 'consul'
+app_consul_port: 8500
+
+# sentry settings
+app_sentry_dsn: ''
+
+# common settings
+app_token_expire: 86400
+app_secret_key: 'top secret'
+
+# loadbalancer_settings
+app_domain: ''
+app_loadbalancer_image: 'clayman74/loadbalancer'
+app_loadbalancer_certbot_image: 'clayman74/certbot'
+app_loadbalancer_data_container_name: 'loadbalancer_data'
+app_loadbalancer_container_name: 'loadbalancer'

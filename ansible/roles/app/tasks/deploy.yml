@@ -1,0 +1,19 @@
+---
+
+- name: Pull app image from registry
+  docker_image:
+    name: "{{ hostvars[groups['locals'][0]]['app_image'] }}"
+    force: yes
+
+- name: Start app container
+  docker_container:
+    name: "{{ app_name }}_{{ item }}"
+    image: "{{ hostvars[groups['locals'][0]]['app_image'] }}"
+    command: "{{ app_name }} --config=/root/config.yml server run --host=0.0.0.0 --port={{ app_server_port }} --consul"
+    recreate: yes
+    networks:
+      - name: "{{ postgresql_network }}"
+    stop_signal: "SIGINT"
+    volumes:
+      - "/opt/projects/{{ app_name }}:/root/"
+  with_sequence: count=4

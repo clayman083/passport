@@ -1,0 +1,16 @@
+---
+
+- include: prepare.yml
+  when: prepare
+  tags:
+    - prepare
+
+- include: build.yml
+  when: build
+  tags:
+    - build
+
+- include: deploy.yml
+  when: deploy
+  tags:
+    - deploy

@@ -1,0 +1,51 @@
+---
+
+app:
+  name: '{{ app_name }}'
+
+  auth:
+    domain: '{{ app_auth_domain }}'
+    secret_key: '{{ app_secret_key }}'
+    token_expire: {{ app_token_expire|default(86400) }}
+
+  access_log: '%a %s %Tf %b "%r" "%{Referrer}i" "%{User-Agent}i"'
+
+consul:
+  host: '{{ app_consul_host|default(consul) }}'
+  port: {{ app_consul_port|default(8500) }}
+
+postgres:
+  name: '{{ app_postgresql_database }}'
+  user: '{{ app_postgresql_user }}'
+  password: '{{ app_postgresql_password }}'
+  host: '{{ app_postgresql_host }}'
+  port: {{ app_postgresql_port }}
+
+sentry:
+  dsn: '{{ app_sentry_dsn }}'
+
+logging:
+  version: 1
+  formatters:
+    simple:
+      format: '%(asctime)s | %(levelname)s | %(name)s | %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: simple
+      level: DEBUG
+      stream: ext://sys.stdout
+  loggers:
+    sqlalchemy:
+      handlers:
+        - console
+      level: DEBUG
+    aiohttp:
+      handlers:
+        - console
+      level: INFO
+    {{ app_name }}:
+      handlers:
+        - console
+      level: INFO

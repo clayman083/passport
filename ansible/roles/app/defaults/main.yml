@@ -9,6 +9,7 @@ app_name: ''
 # docker image settings
 app_package: ''
 app_image: ''
+app_maintainer: ''
 app_container_name: ''
 app_server_port: 5000
 
@@ -22,6 +23,7 @@ app_postgresql_port: 5432
 # consul settings
 app_consul_host: 'consul'
 app_consul_port: 8500
+app_service_name: ''
 
 # sentry settings
 app_sentry_dsn: ''
@@ -29,10 +31,3 @@ app_sentry_dsn: ''
 # common settings
 app_token_expire: 86400
 app_secret_key: 'top secret'
-
-# loadbalancer_settings
-app_domain: ''
-app_loadbalancer_image: 'clayman74/loadbalancer'
-app_loadbalancer_certbot_image: 'clayman74/certbot'
-app_loadbalancer_data_container_name: 'loadbalancer_data'
-app_loadbalancer_container_name: 'loadbalancer'

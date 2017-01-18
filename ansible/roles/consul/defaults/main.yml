@@ -1,8 +1,0 @@
----
-
-consul_network: 'backend'
-consul_image: 'consul'
-consul_container_name: 'consul'
-
-
-consul_distribution_url: 'https://releases.hashicorp.com/consul/0.7.2/consul_0.7.2_linux_amd64.zip'

@@ -23,9 +23,3 @@
     src: consul-template.service.j2
     dest: "/etc/service/{{ app_name }}_consul_template/run"
     mode: "a+x"
-
-#- name: Restart loadbalancer container
-#  docker_container:
-#    name: "{{ loadbalancer_container_name }}"
-#    state: restarted
-

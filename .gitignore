@@ -50,3 +50,4 @@ nosetests.xml
 *.sublime-project
 *.sublime-workspace
 *.develop
+develop.yml

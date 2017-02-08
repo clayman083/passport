@@ -23,6 +23,10 @@ install:
   # Check ansible version
   - ansible --version
 
+  # Assemble ansible config
+  - echo '[defaults]' > ansible.cfg
+  - echo 'roles_path = .roles' >> ansible.cfg
+
   # Install ansible dependencies
   - ansible-galaxy install -r ansible/requirements.yml
 

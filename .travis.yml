@@ -1,0 +1,40 @@
+---
+language: python
+python: "2.7"
+
+sudo: required
+
+services:
+  - docker
+
+# Install ansible
+addons:
+  apt:
+    packages:
+    - python-pip
+
+before_install:
+  - sudo apt-get install -y sshpass
+
+install:
+  # Install ansible
+  - pip install ansible docker-py==1.9.0 tox dopy==0.3.5
+
+  # Check ansible version
+  - ansible --version
+
+  # Install ansible dependencies
+  - ansible-galaxy install -r ansible/requirements.yml
+
+  # Assemble ansible config
+  - echo '[locals]' > inventory
+  - echo 'localhost ansible_connection=local' >> inventory
+
+script:
+  - export PYTHONPATH=$(which python | sed "s/bin\/python/lib\/python2.7\/site-packages\//g"):$PYTHONPATH
+
+  - tox
+  - ansible-playbook -i inventory ansible/build.yml
+
+notifications:
+  slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5

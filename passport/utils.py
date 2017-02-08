@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 
 from aiohttp import web
-from passlib.handlers.pbkdf2 import pbkdf2_sha512
 
 
 @contextmanager
@@ -19,15 +18,3 @@ def register_handler(app: web.Application, url_prefix: str=None,
 
         app.router.add_route(method, url, handler, name=name)
     yield register
-
-
-def encrypt_password(password: str) -> str:
-    return pbkdf2_sha512.encrypt(password, rounds=10000, salt_size=10)
-
-
-def verify_password(password: str, encrypted_password: str) -> bool:
-    try:
-        valid = pbkdf2_sha512.verify(password, encrypted_password)
-    except ValueError:
-        valid = False
-    return valid

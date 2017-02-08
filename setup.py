@@ -12,8 +12,12 @@ setup(
 
     packages=find_packages(exclude=['tests']),
 
+    zip_safe=True,
+    include_package_data=True,
+
     install_requires=[
         'aiohttp',
+        'alembic',
         'asyncpg',
         'cerberus',
         'click',
@@ -26,18 +30,7 @@ setup(
 
     extras_require={
         'develop': ['flake8'],
-        # 'test': ['pytest', 'pytest-aiohttp', 'pytest-cov', 'pytest-postgres',
-        #          'coverage', 'tox']
     },
-
-    tests_require=[
-        'pytest',
-        'pytest-aiohttp',
-        'pytest-cov',
-        'pytest-postgres',
-        'coverage',
-        'tox'
-    ],
 
     entry_points='''
         [console_scripts]

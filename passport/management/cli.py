@@ -6,6 +6,7 @@ import click
 import uvloop
 
 from .. import create_config, init
+from ..management.db import db
 from ..management.server import server
 
 
@@ -29,4 +30,5 @@ def cli(context, config: str):
     context.obj = Context(config)
 
 
+cli.add_command(db, name='db')
 cli.add_command(server, name='server')

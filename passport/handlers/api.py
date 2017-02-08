@@ -6,7 +6,8 @@ import ujson
 from aiohttp import web
 
 from ..exceptions import ValidationError
-from ..utils import encrypt_password, verify_password, register_handler
+from ..storage.users import create_user, verify_password
+from ..utils import register_handler
 from ..validation import Validator
 from . import get_payload
 
@@ -32,12 +33,7 @@ async def registration(request: web.Request) -> web.Response:
         if count:
             raise ValidationError({'email': 'Already used'})
 
-        query = '''
-          INSERT INTO users (email, password, created_on)
-            VALUES ('{0}', '{1}', '{2}')
-        '''.format(payload['email'], encrypt_password(payload['password']),
-                   datetime.now())
-        await conn.execute(query)
+        await create_user(payload['email'], payload['password'], conn)
 
     return web.json_response({
         'email': payload['email'],

@@ -1,7 +1,6 @@
 ---
 language: python
 python:
-  - "2.7"
   - "3.6"
 
 sudo: required
@@ -15,12 +14,19 @@ addons:
     packages:
     - python-pip
 
-before_install:
-  - sudo apt-get install -y sshpass
-
 install:
   # Install ansible
-  - pip install ansible docker-py==1.9.0 tox dopy==0.3.5
+  - pip install tox
+
+script:
+  - tox
+
+after_success:
+  - deactivate
+  - apt-get install -y sshpass
+
+  - # Install ansible
+  - pip install ansible docker-py==1.9.0 dopy==0.3.5
 
   # Check ansible version
   - ansible --version
@@ -36,10 +42,6 @@ install:
   - echo '[locals]' > inventory
   - echo 'localhost ansible_connection=local' >> inventory
 
-script:
-  - export PYTHONPATH=$(which python | sed "s/bin\/python/lib\/python2.7\/site-packages\//g"):$PYTHONPATH
-
-  - tox
   - ansible-playbook -i inventory ansible/build.yml
 
 notifications:

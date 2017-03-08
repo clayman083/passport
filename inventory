@@ -5,9 +5,6 @@ clayman-mac ansible_connection=local
 master size="512mb" region="ams3" image="debian-8-x64"
 
 [cloud:vars]
-loadbalancer_owner_email=sumorokov.k@gmail.com
-loadbalancer_domains=['clayman.pro', 'passport.clayman.pro']
-
 app_service_name=v1.passport
 app_domain=passport.clayman.pro
 app_auth_domain=clayman.pro

@@ -32,15 +32,15 @@ after_success:
   - ansible --version
 
   # Assemble ansible config
-  - echo '[defaults]' > ansible.cfg
+  #- echo '[defaults]' > ansible.cfg
   - echo 'roles_path = .roles' >> ansible.cfg
 
   # Install ansible dependencies
   - ansible-galaxy install -r ansible/requirements.yml
 
   # Assemble ansible config
-  - echo '[locals]' > inventory
-  - echo 'localhost ansible_connection=local' >> inventory
+  #- echo '[locals]' > inventory
+  #- echo 'localhost ansible_connection=local' >> inventory
 
   - ansible-playbook -i inventory ansible/build.yml
 

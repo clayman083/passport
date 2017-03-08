@@ -1,8 +1,0 @@
----
-
-- hosts: locals
-  roles:
-    - role: app
-      build: yes
-      app_name: passport
-      app_maintainer: clayman74

@@ -47,6 +47,7 @@ nosetests.xml
 .pydevproject
 .idea
 .containers
+*.retry
 *.sublime-project
 *.sublime-workspace
 *.develop

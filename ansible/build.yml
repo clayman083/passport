@@ -2,13 +2,6 @@
 
 - hosts: locals
   vars:
-    app_name: passport
-    app_maintainer: clayman74
-
-    app_base_image: python:3.6-alpine
-
-    app_server_port: 5000
-
     app_docker_user: "{{ lookup('env', 'DOCKER_USER') }}"
     app_docker_passpord: "{{ lookup('env', 'DOCKER_PASS') }}"
     app_docker_email: "{{ lookup('env', 'DOCKER_EMAIL') }}"
@@ -39,12 +32,14 @@
         chdir: "{{ app_root_folder }}"
 
     - name: Create Dockerfile
-      template: src=roles/app/templates/Dockerfile.j2 dest="{{ app_dist_folder }}/Dockerfile"
+      template: src=templates/Dockerfile.j2 dest="{{ app_dist_folder }}/Dockerfile"
 
     - name: Build app image
       docker_image:
         name: "{{ app_image }}"
         path: "{{ app_dist_folder }}"
+        force: yes
+        state: build
 
     - name: Login in Docker Hub
       docker_login:

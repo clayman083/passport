@@ -4,7 +4,57 @@ clayman-mac ansible_connection=local
 [cloud]
 master size="512mb" region="ams3" image="debian-8-x64"
 
-[cloud:vars]
-app_service_name=v1.passport
+[all:vars]
+network=backend
+
+# consul settings
+consul_image=consul
+consul_container_name=consul
+consul_network=backend
+
+# loadbalancer settings
+loadbalancer_image=clayman74/loadbalancer
+loadbalancer_container_name=loadbalancer
+
+loadbalancer_domains=['clayman.pro', 'passport.clayman.pro']
+loadbalancer_owner_email=sumorokov.k@gmail.com
+
+# postgresql settings
+postgresql_image=postgres:9.6-alpine
+postgresql_container_name=postgres
+postgresql_network=backend
+postgresql_user=postgres
+postgresql_database=postgres
+
+# image settings
+app_base_image=python:3.6-alpine
+app_name=passport
+app_maintainer=clayman74
+
+# container settings
+app_network=passport_network
+app_container_name=passport
+app_server_port=5000
+app_containers_count=2
+
+# consul settings
+app_consul_host=consul
+app_consul_port=8500
+app_consul_container_name=consul
+app_consul_service_name=v1.passport
+
+# database settings
+app_postgresql_host=postgres
+app_postgresql_port=5432
+app_postgresql_user=passport
+app_postgresql_database=passport
+app_postgresql_container_name=postgres
+
+# sentry settings
+app_sentry_dsn=''
+
+# common settings
 app_domain=passport.clayman.pro
+
 app_auth_domain=clayman.pro
+app_token_expire=86400

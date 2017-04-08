@@ -8,7 +8,15 @@ upstream {{ app_name }}_cluster {
 server {
     listen 80;
     server_name {{ app_domain }};
-    return 301 https://$server_name$request_uri;
+
+    location ~ /.well-known {
+        root /var/www;
+        allow all;
+    }
+
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
 }
 
 server {

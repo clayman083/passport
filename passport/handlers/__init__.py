@@ -1,6 +1,8 @@
-import ujson
+from contextlib import contextmanager
 from typing import Dict
 
+
+import ujson
 from aiohttp import web
 
 
@@ -12,9 +14,28 @@ async def get_payload(request: web.Request) -> Dict:
     return dict(payload)
 
 
+def json_response(data, status: int=200, **kwargs) -> web.Response:
+    return web.json_response(data, dumps=ujson.dumps, status=status, **kwargs)
+
+
+@contextmanager
+def register_handler(app: web.Application, url_prefix: str=None,
+                     name_prefix: str=None):
+    def register(method: str, url: str, handler, name: str=None):
+        if url_prefix:
+            if not url:
+                url = url_prefix
+            else:
+                url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
+
+        if name_prefix:
+            name = '.'.join((name_prefix, name))
+
+        app.router.add_route(method, url, handler, name=name)
+    yield register
+
+
 async def index(request):
-    app_config = request.app.config['app']
-    return web.json_response({
-        'project': app_config['name'],
-        'host': app_config['hostname']
-    }, dumps=ujson.dumps)
+    return json_response({
+        'project': request.app.config['app_name']
+    })

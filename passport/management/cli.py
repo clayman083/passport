@@ -5,14 +5,14 @@ import logging.config
 import click
 import uvloop
 
-from .. import create_config, init
-from ..management.db import db
-from ..management.server import server
+from passport import configure, init
+from passport.management.server import server
 
 
 class Context(object):
-    def __init__(self, config: str):
-        self.conf = create_config(config)
+
+    def __init__(self):
+        self.conf = configure()
         self.init_app = init
 
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
@@ -20,15 +20,13 @@ class Context(object):
 
         logging.config.dictConfig(self.conf['logging'])
 
-        self.logger = logging.getLogger('passport')
+        self.logger = logging.getLogger('app')
 
 
 @click.group()
-@click.option('-c', '--config', default='config.yml')
 @click.pass_context
-def cli(context, config: str):
-    context.obj = Context(config)
+def cli(context):
+    context.obj = Context()
 
 
-cli.add_command(db, name='db')
 cli.add_command(server, name='server')

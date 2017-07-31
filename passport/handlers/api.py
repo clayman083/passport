@@ -1,15 +1,12 @@
 import functools
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import jwt
-import ujson
 from aiohttp import web
 
-from ..exceptions import ValidationError
-from ..storage.users import create_user, verify_password
-from ..utils import register_handler
-from ..validation import Validator
-from . import get_payload
+from passport.handlers import get_payload, json_response, register_handler
+from passport.storage.users import create_user, generate_token, verify_password
+from passport.validation import ValidationError, Validator
 
 
 schema = {
@@ -33,11 +30,9 @@ async def registration(request: web.Request) -> web.Response:
         if count:
             raise ValidationError({'email': 'Already used'})
 
-        await create_user(payload['email'], payload['password'], conn)
+        await create_user(payload['email'], payload['password'], True, conn)
 
-    return web.json_response({
-        'email': payload['email'],
-    }, dumps=ujson.dumps, status=201)
+    return json_response({'email': payload['email']}, status=201)
 
 
 async def login(request: web.Request) -> web.Response:
@@ -61,25 +56,59 @@ async def login(request: web.Request) -> web.Response:
         '''.format(datetime.now(), user['id']))
 
     # Create auth token
-    app_config = request.app.config.get('app')
-    auth_config = app_config.get('auth')
-    access_token = jwt.encode({
-        'id': user['id'],
-        'exp': datetime.now() + timedelta(seconds=auth_config['token_expire'])
-    }, auth_config.get('secret_key'), algorithm='HS256')
+    access_token = generate_token(
+        user['id'], request.app.config['secret_key'], 'access',
+        request.app.config['access_token_expire']
+    )
 
-    headers = {'X-ACCESS-TOKEN': access_token.decode('utf-8')}
-    redirect_to = request.rel_url.query.get('next', None)
-    status = 200
-    if redirect_to:
-        status = 301
-        headers['Location'] = redirect_to
+    refresh_token = generate_token(
+        user['id'], request.app.config['secret_key'], 'refresh',
+        request.app.config['refresh_token_expire']
+    )
 
-    response = web.json_response({'email': user['email']}, dumps=ujson.dumps,
-                                 status=status, headers=headers)
-    response.set_cookie('access_token', access_token.decode('utf-8'),
-                        httponly=True, domain=auth_config.get('domain'))
-    return response
+    headers = {
+        'X-ACCESS-TOKEN': access_token.decode('utf-8'),
+        'X-REFRESH-TOKEN': refresh_token.decode('utf-8')
+    }
+
+    return json_response({'email': user['email']}, headers=headers)
+
+
+async def refresh(request: web.Request) -> web.Response:
+    token = request.headers.get('X-REFRESH-TOKEN', None)
+
+    if not token:
+        raise web.HTTPUnauthorized(text='Refresh token required')
+
+    try:
+        data = jwt.decode(token, request.app.config.get('secret_key'),
+                          algorithms='HS256')
+    except jwt.ExpiredSignatureError:
+        raise web.HTTPUnauthorized(text='Token expired')
+    except jwt.DecodeError:
+        raise web.HTTPUnauthorized(text='Bad token')
+
+    if data['token_type'] != 'refresh':
+        raise web.HTTPUnauthorized(text='Bad token')
+
+    async with request.app.db.acquire() as conn:
+        user = await conn.fetchrow('''
+            SELECT id, email, is_active FROM users WHERE users.id = '{0}'
+        '''.format(data.get('id')))
+
+        if not user:
+            raise web.HTTPNotFound(text='User does not found')
+
+    access_token = generate_token(
+        user['id'], request.app.config['secret_key'], 'access',
+        request.app.config['access_token_expire']
+    )
+
+    headers = {
+        'X-ACCESS-TOKEN': access_token.decode('utf-8'),
+    }
+
+    return json_response({'email': user['email']}, headers=headers)
 
 
 def owner_required(f):
@@ -91,11 +120,8 @@ def owner_required(f):
         if not token:
             raise web.HTTPUnauthorized(text='Access token required')
 
-        app_config = request.app.config.get('app', {})
-        auth_config = app_config.get('auth', {})
-
         try:
-            data = jwt.decode(token, auth_config.get('secret_key'),
+            data = jwt.decode(token, request.app.config['secret_key'],
                               algorithms='HS256')
         except jwt.ExpiredSignatureError:
             raise web.HTTPUnauthorized(text='Token signature expired')
@@ -113,12 +139,12 @@ def owner_required(f):
 
 @owner_required
 async def identify(owner, request: web.Request) -> web.Response:
-    return web.json_response({
+    return json_response({
         'owner': {
             'id': owner['id'],
             'email': owner['email']
         }
-    }, dumps=ujson.dumps, status=200)
+    })
 
 
 async def change_password(request: web.Request) -> web.Response:
@@ -130,4 +156,5 @@ def register(app: web.Application, url_prefix: str, name_prefix: str=None):
         add('GET', 'identify', identify, 'identify')
         add('POST', 'register', registration, 'registration')
         add('POST', 'login', login, 'login')
+        add('POST', 'refresh', refresh, 'refresh')
         add('POST', 'change_password', change_password, 'change_password')

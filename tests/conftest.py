@@ -1,52 +1,58 @@
 import logging
 import os
+import subprocess
+from pathlib import Path
 
 import pytest
 
-from alembic import command
-from alembic.config import Config as AlembicConfig
-
-from passport import create_config, init
+from passport import configure, init
 
 
 @pytest.fixture(scope='session')
 def config():
-    conf = create_config()
+    conf = configure()
 
-    conf['app']['auth'] = {
-        'domain': 'clayman.pro',
-        'secret_key': 'secret',
-        'token_expire': 3600
-    }
+    conf.update(
+        app_host='localhost',
+        app_port='5000'
+    )
 
     return conf
 
 
 @pytest.yield_fixture(scope='function')
 def client(loop, test_client, pg_server, config):
-    logger = logging.getLogger('passport')
+    logger = logging.getLogger('app')
 
-    config['postgres']['host'] = pg_server['pg_params']['host']
-    config['postgres']['port'] = pg_server['pg_params']['port']
+    config.update(
+        db_name=pg_server['pg_params']['database'],
+        db_user=pg_server['pg_params']['user'],
+        db_password=pg_server['pg_params']['password'],
+        db_host=pg_server['pg_params']['host'],
+        db_port=pg_server['pg_params']['port'],
+    )
 
     app = loop.run_until_complete(init(config, logger, loop=loop))
 
-    conf = pg_server['pg_params']
-    directory = config['app'].get('migrations_root')
-    print(directory)
-    db_uri = 'postgres://%s:%s@%s:%s/%s' % (
-        conf.get('user'), conf.get('password'), conf.get('host'),
-        conf.get('port'), conf.get('database')
-    )
+    cwd = Path(config['app_root'])
+    sql_root = cwd / 'storage' / 'sql'
 
-    conf = AlembicConfig(os.path.join(directory, 'alembic.ini'))
-    conf.set_main_option('script_location', directory)
-    conf.set_main_option('sqlalchemy.url', db_uri)
+    cmd = 'cat {schema} | PGPASSWORD=\'{password}\' psql -h {host} -p {port} -d {database} -U {user}'  # noqa
 
-    command.upgrade(conf, revision='head')
+    subprocess.call([cmd.format(
+        schema=(sql_root / 'upgrade_schema.sql').as_posix(),
+        database=config['db_name'],
+        host=config['db_host'], port=config['db_port'],
+        user=config['db_user'], password=config['db_password'],
+    )], shell=True, cwd=cwd.as_posix())
 
     yield loop.run_until_complete(test_client(app))
 
-    command.downgrade(conf, revision='base')
+    subprocess.call([cmd.format(
+        schema=(sql_root / 'downgrade_schema.sql').as_posix(),
+        database=config['db_name'],
+        host=config['db_host'], port=config['db_port'],
+        user=config['db_user'], password=config['db_password'],
+    )], shell=True, cwd=cwd.as_posix())
 
     loop.run_until_complete(app.cleanup())

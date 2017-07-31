@@ -17,7 +17,6 @@ setup(
 
     install_requires=[
         'aiohttp',
-        'alembic',
         'asyncpg',
         'cerberus',
         'click',
@@ -29,7 +28,15 @@ setup(
     ],
 
     extras_require={
-        'develop': ['flake8'],
+        'develop': [
+            'flake8',
+            'flake8-builtins-unleashed',
+            'flake8-bugbear',
+            'flake8-comprehensions',
+            'flake8-import-order',
+            'flake8-mypy',
+            'flake8-pytest'
+        ]
     },
 
     entry_points='''

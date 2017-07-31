@@ -6,11 +6,9 @@ import os
 from aiohttp import web
 from asyncpg.pool import create_pool, Pool
 
-from passport.config import Config, schema as config_schema
-from passport.exceptions import ImproperlyConfigured, ValidationError
-from passport.handlers import api, index
+from passport.config import Config
+from passport.handlers import api, index, register_handler
 from passport.middlewares import catch_exceptions_middleware
-from passport.utils import register_handler
 
 
 class App(web.Application):
@@ -28,80 +26,100 @@ class App(web.Application):
     def db(self) -> Pool:
         return self._db
 
+    @db.setter
+    def db(self, value):
+        self._db = value
+
     def copy(self):
         raise NotImplementedError
 
 
-async def cleanup(instance: App):
+async def startup(app: App) -> None:
+
+    app.logger.info('Application serving on {host}:{port}'.format(
+        host=app.config['app_host'], port=app.config['app_port']))
+
+    app.db = await create_pool(
+        user=app.config.get('db_user'), database=app.config.get('db_name'),
+        host=app.config.get('db_host'), password=app.config.get('db_password'),
+        port=app.config.get('db_port'), min_size=1, max_size=10, loop=app.loop
+    )
+
+
+async def cleanup(instance: App) -> None:
     instance.logger.info('Closing app')
 
-    await instance.db.close()
+    if instance.db:
+        await instance.db.close()
 
 
 async def init(config: Config, logger: logging.Logger=None,
-               loop: asyncio.BaseEventLoop=None) -> App:
+               loop: asyncio.AbstractEventLoop=None) -> App:
     app = App(config=config, middlewares=[catch_exceptions_middleware],
               logger=logger, loop=loop)
-    app.on_cleanup.append(cleanup)
 
-    db_conf = app.config.get('postgres')
-    app._db = await create_pool(
-        user=db_conf.get('user'), database=db_conf.get('database'),
-        host=db_conf.get('host'), password=db_conf.get('password'),
-        port=db_conf.get('port'), min_size=1, max_size=10, loop=loop
-    )
+    app.on_startup.append(startup)
+    app.on_cleanup.append(cleanup)
 
     with register_handler(app, '/') as add:
         add('GET', '', index, 'index')
 
-    api.register(app, '/api/', 'api')
+    api.register(app, '/api', 'api')
 
     return app
 
 
-def create_config(config_file: str=None) -> Config:
+config_schema = {
+    'app_name': {'type': 'string', 'required': True},
+    'app_root': {'type': 'string', 'required': True},
+    'app_hostname': {'type': 'string'},
+    'app_host': {'type': 'string'},
+    'app_port': {'type': 'string'},
+
+    'secret_key': {'type': 'string', 'required': True},
+    'access_token_expire': {'type': 'integer', 'required': True, 'coerce': int},
+    'refresh_token_expire': {'type': 'integer', 'required': True,
+                             'coerce': int},
+
+    'access_log': {'type': 'string', 'required': True},
+
+    'db_name': {'type': 'string', 'required': True},
+    'db_user': {'type': 'string', 'required': True},
+    'db_password': {'type': 'string', 'required': True},
+    'db_host': {'type': 'string', 'required': True},
+    'db_port': {'type': 'integer', 'required': True, 'coerce': int},
+
+    'consul_host': {'type': 'string', 'required': True},
+    'consul_port': {'type': 'integer', 'required': True, 'coerce': int},
+
+    'sentry_dsn': {'type': 'string'},
+
+    'logging': {'type': 'dict', 'required': True}
+}
+
+
+def configure(config_file: str=None) -> Config:
     app_root = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
 
-    config = Config({
-        'app': {
-            'name': 'passport',
-            'root': app_root,
-            'migrations_root': os.path.join(app_root, 'storage', 'migrations'),
-            'templates_root': os.path.join(app_root, 'templates')
-        },
-        'postgres': {
-            'user': 'postgres',
-            'password': 'postgres',
-            'name': 'postgres',
-        }
+    config = Config(config_schema, {
+        'app_name': 'passport',
+        'app_root': app_root,
+
+        'access_token_expire': 900,  # 5 minutes
+        'refresh_token_expire': 2592000,  # 30 days
+        'secret_key': 'cXbFj63wXKtWlWpgLzQIIUYsWRu3EqUY',
+
+        'db_name': 'passport',
+        'db_user': 'passport',
+        'db_password': 'passport'
     })
 
     if config_file:
         config.update_from_yaml(config_file)
 
-    variables = (
-        'app_name', 'app_host', 'app_port'
-        'postgres_host', 'postgres_port', 'postgres_name', 'postgres_user',
-        'postgres_password',
-        'consul_host', 'consul_port',
-        'sentry_dsn'
-    )
-    for variable_name in variables:
-        config.update_from_env_var(variable_name)
+    for key in iter(config_schema.keys()):
+        config.update_from_env_var(key)
 
-    schema = config_schema.copy()
-    schema['app']['schema']['auth'] = {
-        'type': 'dict',
-        'schema': {
-            'domain': {'required': True, 'type': 'string'},
-            'secret_key': {'type': 'string'},
-            'token_expire': {'required': True, 'type': 'integer'},
-        }
-    }
-
-    try:
-        config.validate()
-    except ValidationError as exc:
-        raise ImproperlyConfigured('Config has some errors: %s' % exc.errors)
+    config.validate()
 
     return config

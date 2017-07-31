@@ -2,7 +2,14 @@ from typing import Dict
 
 import cerberus
 
-from .exceptions import ValidationError
+
+class ValidationError(Exception):
+    def __init__(self, errors):
+        self._errors = errors
+
+    @property
+    def errors(self):
+        return self._errors
 
 
 class Validator(cerberus.Validator):

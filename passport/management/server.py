@@ -1,30 +1,27 @@
 import asyncio  # noqa
 import socket
 
-from aiohttp import ClientSession
 import click
 import ujson
+from aiohttp import ClientSession
 
-from .. import App
+from passport import App
 
 
 async def register_service(app: App) -> str:
-    app_config = app.config.get('app')
-    consul_config = app.config.get('consul')
-
     service_name = '_'.join((
-        app_config.get('name'), app_config.get('hostname')
+        app.config.get('app_name'), app.config.get('app_hostname')
     ))
     payload = {
         'ID': service_name,
-        'NAME': app_config.get('name'),
+        'NAME': app.config.get('app_name'),
         'Tags': ['master', 'v1'],
-        'Address': app_config.get('host'),
-        'Port': app_config.get('port')
+        'Address': app.config.get('app_host'),
+        'Port': app.config.get('app_port')
     }
 
     url = 'http://{host}:{port}/v1/agent/service/register'.format(
-        host=consul_config.get('host'), port=consul_config.get('port'))
+        host=app.config.get('consul_host'), port=app.config.get('consul_port'))
 
     with ClientSession() as session:
         async with session.put(url, data=ujson.dumps(payload)) as resp:
@@ -37,12 +34,10 @@ async def register_service(app: App) -> str:
 
 async def unregister_service(service_name: str, app: App):
     if service_name:
-        consul_config = app.config.get('consul')
-
         url = 'http://{host}:{port}/v1/agent/service/deregister/{id}'.format(
             id=service_name,
-            host=consul_config.get('host'),
-            port=consul_config.get('port')
+            host=app.config.get('consul_host'),
+            port=app.config.get('consul_port')
         )
 
         with ClientSession() as session:
@@ -71,30 +66,25 @@ def run(context, host, port, consul):
     app = context.instance  # type: App
     loop = context.loop  # type: asyncio.BaseEventLoop
 
-    app_config = app.config['app']
     handler = app.make_handler(access_log=context.logger,
-                               access_log_format=app_config.get('access_log'))
+                               access_log_format=app.config.get('access_log'))
     srv = loop.run_until_complete(loop.create_server(handler, host, port))
 
-    hostname = socket.gethostname()
-    app.config['app']['hostname'] = hostname
-
-    if 'host' not in app.config['app']:
+    if 'app_host' not in app.config:
         try:
-            ip_address = socket.gethostbyname(hostname)
+            ip_address = socket.gethostbyname(app.config.get('app_hostname'))
         except socket.gaierror:
             ip_address = '127.0.0.1'
 
-        app.config['app']['host'] = ip_address
+        app.config['app_host'] = ip_address
 
-    app.config['app']['port'] = int(port)
-
-    app.logger.info('Application serving on {host}:{port}'.format(host=host,
-                                                                  port=port))
+    app.config['app_port'] = int(port)
 
     service_name = None
     if consul:
         service_name = loop.run_until_complete(register_service(app))
+
+    loop.run_until_complete(app.startup())
 
     try:
         loop.run_forever()

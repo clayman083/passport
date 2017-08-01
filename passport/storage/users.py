@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import jwt
+from asyncpg.connection import Connection
 from passlib.handlers.pbkdf2 import pbkdf2_sha512
 
 
@@ -28,7 +29,7 @@ def generate_token(owner: int, secret_key: str, token_type: str='access',
     return token
 
 
-async def create_user(email, password, is_active, connection):
+async def create_user(email, password, is_active, connection: Connection):
     user = {'email': email, 'password': password}
 
     query = """

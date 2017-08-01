@@ -1,8 +1,10 @@
+from typing import Dict
+
 import jwt
 import pytest
 import ujson
 
-from passport import App  # noqa
+from passport import App
 from passport.storage.users import create_user, generate_token
 
 
@@ -17,11 +19,11 @@ def prepare_request(data, json=False):
 
 @pytest.fixture(scope='function')
 def prepare_user():
-    async def go(user, app):
+    async def go(user: Dict, app: App):
         async with app.db.acquire() as conn:
-            instance = await create_user(user['email'], user['password'],
-                                         is_active=user['is_active'],
-                                         connection=conn)
+            data: Dict = user.copy()
+            data.setdefault('is_active', True)
+            instance = await create_user(**data, connection=conn)
         return instance
     return go
 
@@ -59,7 +61,7 @@ async def test_registration_failed_when_already_existed(client, prepare_user, js
     app: App = client.server.app
 
     await prepare_user({
-        'email': 'john@testing.com', 'password': 'top-secret', 'is_active': True
+        'email': 'john@testing.com', 'password': 'top-secret'
     }, app)
 
     url = app.router.named_resources()['api.registration'].url()
@@ -74,7 +76,7 @@ async def test_login_success(client, prepare_user, json):
     url = app.router.named_resources()['api.login'].url()
 
     data = {'email': 'john@testing.com', 'password': 'top-secret'}
-    await prepare_user({**data, 'is_active': True}, app)
+    await prepare_user(data, app)
 
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 200
@@ -91,9 +93,7 @@ async def test_login_failed(client, prepare_user, json, password):
 
     email = 'john@testing.com'
 
-    await prepare_user({
-        'email': email, 'password': 'top-secret', 'is_active': True
-    }, app)
+    await prepare_user({'email': email, 'password': 'top-secret'}, app)
 
     payload = {'email': email, 'password': password}
     resp = await client.post(url, **prepare_request(payload, json))
@@ -117,7 +117,7 @@ async def test_refresh_success(client, prepare_user):
     url = app.router.named_resources()['api.refresh'].url()
 
     user = await prepare_user({
-        'email': 'john@testing.com', 'password': 'top-secret', 'is_active': True
+        'email': 'john@testing.com', 'password': 'top-secret'
     }, app)
 
     refresh_token = generate_token(user['id'], app.config.get('secret_key'),
@@ -165,28 +165,24 @@ async def test_refresh_failed_for_inactive(client, prepare_user):
 
     headers = {'X-REFRESH-TOKEN': refresh_token.decode('utf-8')}
     resp = await client.post(url, headers=headers)
-    assert resp.status == 401
+    assert resp.status == 404
 
 
 @pytest.mark.handlers
 async def test_identify_success(client, prepare_user):
     app: App = client.server.app
-    url = app.router.named_resources()['api.login'].url()
+    url = app.router.named_resources()['api.identify'].url()
 
     data = {'email': 'john@testing.com', 'password': 'top-secret'}
 
-    await prepare_user({
-        'email': 'john@testing.com',
-        'password': 'top-secret',
-        'is_active': False
+    user = await prepare_user({
+        'email': 'john@testing.com', 'password': 'top-secret'
     }, app)
 
-    resp = await client.post(url, data=data)
-    assert resp.status == 200
-    assert 'X-ACCESS-TOKEN' in resp.headers
+    access_token = generate_token(user['id'], app.config.get('secret_key'),
+                                  'access', expires=3600)
 
-    url = app.router.named_resources()['api.identify'].url()
-    headers = {'X-ACCESS-TOKEN': resp.headers['X-ACCESS-TOKEN']}
+    headers = {'X-ACCESS-TOKEN': access_token.decode('utf-8')}
     resp = await client.get(url, headers=headers)
     assert resp.status == 200
     result = await resp.json()

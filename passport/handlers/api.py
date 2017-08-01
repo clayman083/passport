@@ -1,5 +1,6 @@
 import functools
 from datetime import datetime
+from typing import Dict
 
 import jwt
 from aiohttp import web
@@ -43,8 +44,10 @@ async def login(request: web.Request) -> web.Response:
 
     async with request.app.db.acquire() as conn:
         user = await conn.fetchrow('''
-            SELECT id, email, password FROM users WHERE users.email = '{0}'
-        '''.format(payload['email']))
+            SELECT id, email, password FROM users WHERE (
+                users.email = $1 AND is_active = TRUE
+            )
+        ''', payload['email'])
         if not user:
             raise web.HTTPNotFound(text='User does not found')
 
@@ -52,8 +55,8 @@ async def login(request: web.Request) -> web.Response:
             raise ValidationError({'password': 'Wrong password'})
 
         await conn.execute('''
-            UPDATE users SET last_login = '{0}' WHERE id = {1}
-        '''.format(datetime.now(), user['id']))
+            UPDATE users SET last_login = $1 WHERE id = $2
+        ''', datetime.now(), user['id'])
 
     # Create auth token
     access_token = generate_token(
@@ -74,27 +77,42 @@ async def login(request: web.Request) -> web.Response:
     return json_response({'email': user['email']}, headers=headers)
 
 
-async def refresh(request: web.Request) -> web.Response:
-    token = request.headers.get('X-REFRESH-TOKEN', None)
+def token_required(token_type, token_name):
+    if token_type not in ('access', 'refresh'):
+        raise ValueError('Unsupported token type: {token_type}')
 
-    if not token:
-        raise web.HTTPUnauthorized(text='Refresh token required')
+    def wrapper(f):
+        @functools.wraps(f)
+        async def wrapped(request: web.Request):
+            token = request.headers.get(token_name, '')
 
-    try:
-        data = jwt.decode(token, request.app.config.get('secret_key'),
-                          algorithms='HS256')
-    except jwt.ExpiredSignatureError:
-        raise web.HTTPUnauthorized(text='Token expired')
-    except jwt.DecodeError:
-        raise web.HTTPUnauthorized(text='Bad token')
+            if not token:
+                raise web.HTTPUnauthorized(text='Token required')
 
-    if data['token_type'] != 'refresh':
-        raise web.HTTPUnauthorized(text='Bad token')
+            try:
+                token_data = jwt.decode(token, request.app.config['secret_key'],
+                                        algorithms='HS256')
+            except jwt.ExpiredSignatureError:
+                raise web.HTTPUnauthorized(text='Token signature expired')
+            except jwt.DecodeError:
+                raise web.HTTPUnauthorized(text='Bad token')
 
+            if token_data['token_type'] != token_type:
+                raise web.HTTPUnauthorized(text='Bad token')
+
+            return await f(token_data, request)
+        return wrapped
+    return wrapper
+
+
+@token_required('refresh', 'X-REFRESH-TOKEN')
+async def refresh(token: Dict, request: web.Request) -> web.Response:
     async with request.app.db.acquire() as conn:
         user = await conn.fetchrow('''
-            SELECT id, email, is_active FROM users WHERE users.id = '{0}'
-        '''.format(data.get('id')))
+            SELECT id, email, is_active FROM users WHERE (
+                id = $1 AND is_active = TRUE
+            )
+        ''', token['id'])
 
         if not user:
             raise web.HTTPNotFound(text='User does not found')
@@ -111,40 +129,16 @@ async def refresh(request: web.Request) -> web.Response:
     return json_response({'email': user['email']}, headers=headers)
 
 
-def owner_required(f):
-    @functools.wraps(f)
-    async def wrapped(request: web.Request):
-        token = request.headers.get('X-ACCESS-TOKEN', None) or \
-                request.cookies.get('access_token', None)
+@token_required('access', 'X-ACCESS-TOKEN')
+async def identify(token: Dict, request: web.Request) -> web.Response:
+    async with request.app.db.acquire() as conn:
+        user = await conn.fetchrow('''
+            SELECT id, email FROM users WHERE (
+                id = $1 AND is_active = TRUE
+            )
+        ''', token['id'])
 
-        if not token:
-            raise web.HTTPUnauthorized(text='Access token required')
-
-        try:
-            data = jwt.decode(token, request.app.config['secret_key'],
-                              algorithms='HS256')
-        except jwt.ExpiredSignatureError:
-            raise web.HTTPUnauthorized(text='Token signature expired')
-        except jwt.DecodeError:
-            raise web.HTTPUnauthorized(text='Bad access token')
-
-        async with request.app.db.acquire() as conn:
-            user = await conn.fetchrow('''
-                SELECT id, email FROM users WHERE users.id = '{0}'
-            '''.format(data.get('id')))
-
-        return await f(user, request)
-    return wrapped
-
-
-@owner_required
-async def identify(owner, request: web.Request) -> web.Response:
-    return json_response({
-        'owner': {
-            'id': owner['id'],
-            'email': owner['email']
-        }
-    })
+    return json_response({'owner': {'id': user['id'], 'email': user['email']}})
 
 
 async def change_password(request: web.Request) -> web.Response:

@@ -97,7 +97,7 @@ def token_required(token_type, token_name):
             except jwt.DecodeError:
                 raise web.HTTPUnauthorized(text='Bad token')
 
-            if token_data['token_type'] != token_type:
+            if token_data.get('token_type', None) != token_type:
                 raise web.HTTPUnauthorized(text='Bad token')
 
             return await f(token_data, request)
@@ -141,14 +141,9 @@ async def identify(token: Dict, request: web.Request) -> web.Response:
     return json_response({'owner': {'id': user['id'], 'email': user['email']}})
 
 
-async def change_password(request: web.Request) -> web.Response:
-    pass
-
-
 def register(app: web.Application, url_prefix: str, name_prefix: str=None):
     with register_handler(app, url_prefix, name_prefix) as add:
         add('GET', 'identify', identify, 'identify')
         add('POST', 'register', registration, 'registration')
         add('POST', 'login', login, 'login')
         add('POST', 'refresh', refresh, 'refresh')
-        add('POST', 'change_password', change_password, 'change_password')

@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='passport',
-    version='1.0.0',
+    version='2.0.0',
     url='https://passport.clayman.pro',
     license='MIT',
     author='Kirill Sumorokov',

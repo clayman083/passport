@@ -35,7 +35,6 @@ class App(web.Application):
 
 
 async def startup(app: App) -> None:
-
     app.logger.info('Application serving on {host}:{port}'.format(
         host=app.config['app_host'], port=app.config['app_port']))
 
@@ -47,7 +46,7 @@ async def startup(app: App) -> None:
 
 
 async def cleanup(instance: App) -> None:
-    instance.logger.info('Closing app')
+    instance.logger.info('Good bye')
 
     if instance.db:
         await instance.db.close()
@@ -107,7 +106,6 @@ def configure(config_file: str=None) -> Config:
 
         'access_token_expire': 900,  # 5 minutes
         'refresh_token_expire': 2592000,  # 30 days
-        'secret_key': 'cXbFj63wXKtWlWpgLzQIIUYsWRu3EqUY',
 
         'db_name': 'passport',
         'db_user': 'passport',

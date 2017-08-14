@@ -106,6 +106,7 @@ def configure(config_file: str=None) -> Config:
 
         'access_token_expire': 900,  # 5 minutes
         'refresh_token_expire': 2592000,  # 30 days
+        'secret_key': 'secret',
 
         'db_name': 'passport',
         'db_user': 'passport',

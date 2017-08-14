@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='passport',
-    version='2.0.1',
+    version='2.1.0',
     url='https://passport.clayman.pro',
     license='MIT',
     author='Kirill Sumorokov',
@@ -23,6 +23,8 @@ setup(
         'passlib',
         'pyjwt',
         'pyyaml',
+        'raven',
+        'raven-aiohttp',
         'ujson',
         'uvloop',
     ],

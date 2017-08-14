@@ -20,8 +20,9 @@ async def catch_exceptions_middleware(app, handler):
             if isinstance(exc, (web.HTTPClientError, )):
                 raise
 
-            # if not app.config['app'].get('debug', False):
-            #     app.logger.error(exc)
-            # else:
-            raise exc
+            # send error to sentry
+            if request.app.raven:
+                request.app.raven.captureException()
+            raise web.HTTPInternalServerError
+
     return middleware_handler

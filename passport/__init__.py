@@ -5,6 +5,8 @@ import os
 
 from aiohttp import web
 from asyncpg.pool import create_pool, Pool
+from raven import Client
+from raven_aiohttp import AioHttpTransport
 
 from passport.config import Config
 from passport.handlers import api, index, register_handler
@@ -17,6 +19,7 @@ class App(web.Application):
 
         self._config = config  # type: Config
         self._db = None  # type: Pool
+        self._raven = None  # type: Client
 
     @property
     def config(self) -> Config:
@@ -26,9 +29,17 @@ class App(web.Application):
     def db(self) -> Pool:
         return self._db
 
+    @property
+    def raven(self) -> Client:
+        return self._raven
+
     @db.setter
     def db(self, value):
         self._db = value
+
+    @raven.setter
+    def raven(self, value):
+        self._raven = value
 
     def copy(self):
         raise NotImplementedError
@@ -43,6 +54,9 @@ async def startup(app: App) -> None:
         host=app.config.get('db_host'), password=app.config.get('db_password'),
         port=app.config.get('db_port'), min_size=1, max_size=10, loop=app.loop
     )
+
+    if app.config.get('sentry_dsn', None):
+        app.raven = Client(app.config['sentry_dsn'], transport=AioHttpTransport)
 
 
 async def cleanup(instance: App) -> None:

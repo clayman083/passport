@@ -1,19 +1,57 @@
-.PHONY: all build test clean
+.PHONY: clean clean-test clean-pyc clean-build
 
-clean:
-	@rm -rf dist
-	@rm -f `find . -type f -name '*.py[co]' `
-	@rm -f `find . -type f -name '*~' `
-	@rm -f .coverage
-	@rm -rf .cache
-	@rm -rf .eggs
-	@rm -rf coverage
-	@rm -rf build
-	@rm -rf cover
-	@rm -rf .tox
+clean: clean-build clean-pyc clean-test
 
-build:
-	python setup.py sdist
+clean-build:
+	rm -fr build/
+	rm -fr dist/
+	rm -fr .eggs/
+	find . -name '*.egg-info' -exec rm -fr {} +
+	find . -name '*.egg' -exec rm -f {} +
+
+clean-pyc:
+	find . -name '*.pyc' -exec rm -f {} +
+	find . -name '*.pyo' -exec rm -f {} +
+	find . -name '*~' -exec rm -f {} +
+	find . -name '__pycache__' -exec rm -fr {} +
+
+clean-test:
+	rm -fr .tox/
+	rm -f .coverage
+	rm -fr tests/coverage
+	rm -f tests/coverage.xml
+
+install: clean
+	pip install -e .
+
+lint:
+	flake8 passport tests
 
 test:
+	py.test
+
+test-all:
 	tox
+
+coverage:
+	coverage erase
+	coverage run -m py.test \
+        --pg-image=postgres:alpine \
+        --pg-reuse \
+        --pg-name=db-cf2b8d1e-24d4-41a0-9e1e-88d2e4789a02 \
+        -v tests
+	coverage report -m
+	coverage xml
+	coverage html
+
+build: clean-build
+	python setup.py sdist
+
+build-image: build
+	docker build --build-arg app_version=`python setup.py --version` -t clayman74/passport .
+	docker tag clayman74/passport clayman74/passport:`python setup.py --version`
+	docker images -qf dangling=true | xargs docker rmi
+
+publish-image:
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
+	docker push clayman74/passport

@@ -1,9 +1,22 @@
+import os
+
 from setuptools import find_packages, setup
 
 
+project = 'passport'
+
+
+def static_files(path, prefix):
+    for root, _, files in os.walk(path):
+        paths = []
+        for item in files:
+            paths.append(os.path.join(root, item))
+        yield (root.replace(path, prefix), paths)
+
+
 setup(
-    name='passport',
-    version='2.1.0',
+    name=project,
+    version='2.2.1',
     url='https://passport.clayman.pro',
     license='MIT',
     author='Kirill Sumorokov',
@@ -14,6 +27,9 @@ setup(
 
     zip_safe=True,
     include_package_data=True,
+
+    data_files=[item for item in static_files('%s/storage/sql' % project,
+                                              'usr/share/%s' % project)],
 
     install_requires=[
         'aiohttp',

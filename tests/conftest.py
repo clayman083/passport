@@ -1,5 +1,4 @@
 import logging
-import os
 import subprocess
 from pathlib import Path
 
@@ -25,11 +24,11 @@ def client(loop, test_client, pg_server, config):
     logger = logging.getLogger('app')
 
     config.update(
-        db_name=pg_server['pg_params']['database'],
-        db_user=pg_server['pg_params']['user'],
-        db_password=pg_server['pg_params']['password'],
-        db_host=pg_server['pg_params']['host'],
-        db_port=pg_server['pg_params']['port'],
+        db_name=pg_server['params']['database'],
+        db_user=pg_server['params']['user'],
+        db_password=pg_server['params']['password'],
+        db_host=pg_server['params']['host'],
+        db_port=pg_server['params']['port'],
     )
 
     app = loop.run_until_complete(init(config, logger, loop=loop))

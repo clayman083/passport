@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir -U pip && \
     pip install --no-cache-dir /root/passport-${app_version}.tar.gz && \
     rm /root/passport-${app_version}.tar.gz
 
+RUN mkdir -p /usr/share/passport && cp /usr/local/lib/python3.6/site-packages/passport/storage/sql/* /usr/share/passport
 
 EXPOSE 5000
 

@@ -48,8 +48,7 @@ nosetests.xml
 .idea
 .containers
 .mypy_cache
+.scannerwork
 *.retry
-*.sublime-project
-*.sublime-workspace
 *.develop
-develop.yml
+conf

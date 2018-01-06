@@ -16,7 +16,7 @@ def static_files(path, prefix):
 
 setup(
     name=project,
-    version='2.2.1',
+    version='2.3.0',
     url='https://passport.clayman.pro',
     license='MIT',
     author='Kirill Sumorokov',

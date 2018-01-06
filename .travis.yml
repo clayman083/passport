@@ -12,12 +12,17 @@ addons:
   apt:
     packages:
     - python-pip
+  sonarcloud:
+    organization: clayman74-github
+    branches:
+      - master
 
 install:
   - pip install tox
 
 script:
   - tox
+  - sonar-scanner
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then

@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from typing import Dict
 
-
 import ujson
 from aiohttp import web
 
@@ -22,6 +21,9 @@ def json_response(data, status: int=200, **kwargs) -> web.Response:
 def register_handler(app: web.Application, url_prefix: str=None,
                      name_prefix: str=None):
     def register(method: str, url: str, handler, name: str=None):
+        if not name:
+            name = handler.__name__
+
         if url_prefix:
             if not url:
                 url = url_prefix
@@ -29,7 +31,7 @@ def register_handler(app: web.Application, url_prefix: str=None,
                 url = '/'.join((url_prefix.rstrip('/'), url.lstrip('/')))
 
         if name_prefix:
-            name = '.'.join((name_prefix, name))
+            name = f'{name_prefix}.{name}'
 
         app.router.add_route(method, url, handler, name=name)
     yield register

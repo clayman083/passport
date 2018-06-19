@@ -30,11 +30,11 @@ def prepare_user():
 
 @pytest.mark.handlers
 @pytest.mark.parametrize('json', [True, False])
-async def test_registration_success(client, prepare_user, json):
+async def test_registration_success(aiohttp_client, app, prepare_user, json):
     data = {'email': 'john@testing.com', 'password': 'top-secret'}
-    app: App = client.server.app
+    client = await aiohttp_client(app)
 
-    url = app.router.named_resources()['api.registration'].url()
+    url = app.router.named_resources()['api.registration'].url_for()
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 201
 
@@ -45,35 +45,35 @@ async def test_registration_success(client, prepare_user, json):
 
 @pytest.mark.handlers
 @pytest.mark.parametrize('json', [True, False])
-async def test_registration_failed_without_password(client, prepare_user, json):
+async def test_registration_failed_without_password(aiohttp_client, app, prepare_user, json):  # noqa: E501
     data = {'email': 'john@testing.com'}
-    app: App = client.server.app
+    client = await aiohttp_client(app)
 
-    url = app.router.named_resources()['api.registration'].url()
+    url = app.router.named_resources()['api.registration'].url_for()
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 400
 
 
 @pytest.mark.handlers
 @pytest.mark.parametrize('json', [True, False])
-async def test_registration_failed_when_already_existed(client, prepare_user, json):
+async def test_registration_failed_already_existed(aiohttp_client, app, prepare_user, json):  # noqa: E501
     data = {'email': 'john@testing.com', 'password': 'top-secret'}
-    app: App = client.server.app
+    client = await aiohttp_client(app)
 
     await prepare_user({
         'email': 'john@testing.com', 'password': 'top-secret'
     }, app)
 
-    url = app.router.named_resources()['api.registration'].url()
+    url = app.router.named_resources()['api.registration'].url_for()
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 400
 
 
 @pytest.mark.handlers
 @pytest.mark.parametrize('json', [True, False])
-async def test_login_success(client, prepare_user, json):
-    app: App = client.server.app
-    url = app.router.named_resources()['api.login'].url()
+async def test_login_success(aiohttp_client, app, prepare_user, json):
+    client = await aiohttp_client(app)
+    url = app.router.named_resources()['api.login'].url_for()
 
     data = {'email': 'john@testing.com', 'password': 'top-secret'}
     await prepare_user(data, app)
@@ -87,9 +87,9 @@ async def test_login_success(client, prepare_user, json):
 @pytest.mark.handlers
 @pytest.mark.parametrize('json', [True, False])
 @pytest.mark.parametrize('password', ['', 'wrong-password'])
-async def test_login_failed(client, prepare_user, json, password):
-    app: App = client.server.app
-    url = app.router.named_resources()['api.login'].url()
+async def test_login_failed(aiohttp_client, app, prepare_user, json, password):
+    client = await aiohttp_client(app)
+    url = app.router.named_resources()['api.login'].url_for()
 
     email = 'john@testing.com'
 
@@ -102,9 +102,9 @@ async def test_login_failed(client, prepare_user, json, password):
 
 @pytest.mark.handlers
 @pytest.mark.parametrize('json', [True, False])
-async def test_login_unregistered(client, prepare_user, json):
-    app: App = client.server.app
-    url = app.router.named_resources()['api.login'].url()
+async def test_login_unregistered(aiohttp_client, app, prepare_user, json):
+    client = await aiohttp_client(app)
+    url = app.router.named_resources()['api.login'].url_for()
 
     payload = {'email': 'peter@missing.com', 'password': 'some-secret'}
     resp = await client.post(url, **prepare_request(payload, json))
@@ -112,9 +112,9 @@ async def test_login_unregistered(client, prepare_user, json):
 
 
 @pytest.mark.handlers
-async def test_refresh_success(client, prepare_user):
-    app: App = client.server.app
-    url = app.router.named_resources()['api.refresh'].url()
+async def test_refresh_success(aiohttp_client, app, prepare_user):
+    client = await aiohttp_client(app)
+    url = app.router.named_resources()['api.refresh'].url_for()
 
     user = await prepare_user({
         'email': 'john@testing.com', 'password': 'top-secret'
@@ -138,9 +138,9 @@ async def test_refresh_success(client, prepare_user):
 @pytest.mark.handler
 @pytest.mark.parametrize('token_type', ['', 'wrong', 'access', None])
 @pytest.mark.parametrize('user_id', ['', 0, '2', None])
-async def test_refresh_failed(client, prepare_user, token_type, user_id):
-    app: App = client.server.app
-    url = app.router.named_resources()['api.refresh'].url()
+async def test_refresh_failed(aiohttp_client, app, prepare_user, token_type, user_id):  # noqa: E501
+    client = await aiohttp_client(app)
+    url = app.router.named_resources()['api.refresh'].url_for()
 
     refresh_token = generate_token(user_id, app.config.get('secret_key'),
                                    token_type)
@@ -150,9 +150,9 @@ async def test_refresh_failed(client, prepare_user, token_type, user_id):
 
 
 @pytest.mark.handler
-async def test_refresh_failed_for_inactive(client, prepare_user):
-    app: App = client.server.app
-    url = app.router.named_resources()['api.refresh'].url()
+async def test_refresh_failed_for_inactive(aiohttp_client, app, prepare_user):
+    client = await aiohttp_client(app)
+    url = app.router.named_resources()['api.refresh'].url_for()
 
     user = await prepare_user({
         'email': 'john@testing.com',
@@ -169,9 +169,9 @@ async def test_refresh_failed_for_inactive(client, prepare_user):
 
 
 @pytest.mark.handlers
-async def test_identify_success(client, prepare_user):
-    app: App = client.server.app
-    url = app.router.named_resources()['api.identify'].url()
+async def test_identify_success(aiohttp_client, app, prepare_user):
+    client = await aiohttp_client(app)
+    url = app.router.named_resources()['api.identify'].url_for()
 
     data = {'email': 'john@testing.com', 'password': 'top-secret'}
 

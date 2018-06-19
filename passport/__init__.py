@@ -1,15 +1,16 @@
 import asyncio
 import logging
-
 import os
 
+import pkg_resources
 from aiohttp import web
 from asyncpg.pool import create_pool, Pool
+from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 from raven import Client
 from raven_aiohttp import AioHttpTransport
 
 from passport.config import Config
-from passport.handlers import api, index, register_handler
+from passport.handlers import api, index, metrics, register_handler
 from passport.middlewares import catch_exceptions_middleware
 
 
@@ -33,11 +34,11 @@ class App(web.Application):
     def raven(self) -> Client:
         return self._raven
 
-    @db.setter
+    @db.setter  # noqa
     def db(self, value):
         self._db = value
 
-    @raven.setter
+    @raven.setter  # noqa
     def raven(self, value):
         self._raven = value
 
@@ -71,11 +72,31 @@ async def init(config: Config, logger: logging.Logger=None,
     app = App(config=config, middlewares=[catch_exceptions_middleware],
               logger=logger, loop=loop)
 
+    app['distribution'] = pkg_resources.get_distribution('passport')
+
+    metrics_registry = CollectorRegistry()
+    app['metrics'] = {
+        'REQUEST_COUNT': Counter(
+            'requests_total', 'Total request count',
+            ['app_name', 'method', 'endpoint', 'http_status'],
+            registry=metrics_registry
+        ),
+        'REQUEST_LATENCY': Histogram(
+            'requests_latency_seconds', 'Request latency',
+            ['app_name', 'endpoint'], registry=metrics_registry
+        ),
+        'REQUEST_IN_PROGRESS': Gauge(
+            'requests_in_progress_total', 'Requests in progress',
+            ['app_name', 'endpoint', 'method'], registry=metrics_registry
+        )
+    }
+
     app.on_startup.append(startup)
     app.on_cleanup.append(cleanup)
 
     with register_handler(app, '/') as add:
         add('GET', '', index, 'index')
+        add('GET', 'metrics', metrics.metrics)
 
     api.register(app, '/api', 'api')
 

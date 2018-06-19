@@ -20,7 +20,7 @@ def config():
 
 
 @pytest.yield_fixture(scope='function')
-def client(loop, test_client, pg_server, config):
+def app(loop, pg_server, config):
     logger = logging.getLogger('app')
 
     config.update(
@@ -45,7 +45,7 @@ def client(loop, test_client, pg_server, config):
         user=config['db_user'], password=config['db_password'],
     )], shell=True, cwd=cwd.as_posix())
 
-    yield loop.run_until_complete(test_client(app))
+    yield app
 
     subprocess.call([cmd.format(
         schema=(sql_root / 'downgrade_schema.sql').as_posix(),

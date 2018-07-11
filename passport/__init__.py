@@ -9,9 +9,9 @@ from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 from raven import Client
 from raven_aiohttp import AioHttpTransport
 
+from passport import middlewares
 from passport.config import Config
-from passport.handlers import api, index, metrics, register_handler
-from passport.middlewares import catch_exceptions_middleware
+from passport.handlers import api, service
 
 
 class App(web.Application):
@@ -69,36 +69,43 @@ async def cleanup(instance: App) -> None:
 
 async def init(config: Config, logger: logging.Logger=None,
                loop: asyncio.AbstractEventLoop=None) -> App:
-    app = App(config=config, middlewares=[catch_exceptions_middleware],
-              logger=logger, loop=loop)
+    app = App(config=config, logger=logger, loop=loop, middlewares=[
+        middlewares.catch_exceptions_middleware,
+        middlewares.prometheus_middleware
+    ])
 
     app['distribution'] = pkg_resources.get_distribution('passport')
 
-    metrics_registry = CollectorRegistry()
+    app['metrics_registry'] = CollectorRegistry()
     app['metrics'] = {
         'REQUEST_COUNT': Counter(
             'requests_total', 'Total request count',
             ['app_name', 'method', 'endpoint', 'http_status'],
-            registry=metrics_registry
+            registry=app['metrics_registry']
         ),
         'REQUEST_LATENCY': Histogram(
             'requests_latency_seconds', 'Request latency',
-            ['app_name', 'endpoint'], registry=metrics_registry
+            ['app_name', 'endpoint'], registry=app['metrics_registry']
         ),
         'REQUEST_IN_PROGRESS': Gauge(
             'requests_in_progress_total', 'Requests in progress',
-            ['app_name', 'endpoint', 'method'], registry=metrics_registry
+            ['app_name', 'endpoint', 'method'], registry=app['metrics_registry']
         )
     }
 
     app.on_startup.append(startup)
     app.on_cleanup.append(cleanup)
 
-    with register_handler(app, '/') as add:
-        add('GET', '', index, 'index')
-        add('GET', 'metrics', metrics.metrics)
+    app.router.add_get('/', service.index, name='index')
 
-    api.register(app, '/api', 'api')
+    app.router.add_get('/-/health', service.health, name='health')
+    app.router.add_get('/-/metrics', service.metrics, name='metrics')
+
+    app.router.add_get('/api/identify', api.identify, name='api.identify')
+    app.router.add_post('/api/login', api.login, name='api.login')
+    app.router.add_post('/api/refresh', api.refresh, name='api.refresh')
+    app.router.add_post('/api/register', api.registration,
+                        name='api.registration')
 
     return app
 

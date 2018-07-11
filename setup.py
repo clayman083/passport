@@ -41,7 +41,7 @@ setup(
         'passlib==1.7.1',
         'prometheus_client>=0.0.19',
         'pyjwt==1.6.4',
-        'pyyaml==3.12',
+        'pyyaml==4.2b4',
         'raven==6.9.0',
         'raven-aiohttp==0.7.0',
         'ujson==1.35',
@@ -50,19 +50,18 @@ setup(
 
     extras_require={
         'dev': [
-            'flake8==3.5.0',
-            'flake8-bugbear==18.2.0',
-            'flake8-builtins-unleashed==1.3.1',
-            'flake8-comprehensions==1.4.1',
-            'flake8-import-order==0.17.1',
-            'flake8-mypy==17.8.0',
-            'flake8-pytest==1.3',
+            'flake8',
+            'flake8-bugbear',
+            'flake8-builtins-unleashed',
+            'flake8-comprehensions',
+            'flake8-import-order',
+            'flake8-pytest',
 
-            'pytest==3.6.1',
-            'pytest-aiohttp==0.3.0',
-            'pytest-postgres==0.5.0',
-            'coverage==4.5.1',
-            'coveralls==1.3.0'
+            'pytest',
+            'pytest-aiohttp',
+            'pytest-postgres',
+            'coverage',
+            'coveralls'
         ]
     },
 

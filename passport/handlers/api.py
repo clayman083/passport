@@ -5,7 +5,7 @@ from typing import Dict
 import jwt
 from aiohttp import web
 
-from passport.handlers import get_payload, json_response, register_handler
+from passport.handlers import get_payload, json_response
 from passport.storage.users import create_user, generate_token, verify_password
 from passport.validation import ValidationError, Validator
 
@@ -139,11 +139,3 @@ async def identify(token: Dict, request: web.Request) -> web.Response:
         ''', token['id'])
 
     return json_response({'owner': {'id': user['id'], 'email': user['email']}})
-
-
-def register(app: web.Application, url_prefix: str, name_prefix: str=None):
-    with register_handler(app, url_prefix, name_prefix) as add:
-        add('GET', 'identify', identify, 'identify')
-        add('POST', 'register', registration, 'registration')
-        add('POST', 'login', login, 'login')
-        add('POST', 'refresh', refresh, 'refresh')

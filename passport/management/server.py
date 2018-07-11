@@ -3,7 +3,7 @@ import socket
 
 import click
 import ujson
-from aiohttp import ClientSession
+from aiohttp import ClientSession, web
 
 from passport import App
 
@@ -12,18 +12,25 @@ async def register_service(app: App) -> str:
     service_name = '_'.join((
         app.config.get('app_name'), app.config.get('app_hostname')
     ))
+    host = app.config.get('app_host')
+    port = app.config.get('app_port')
+
     payload = {
         'ID': service_name,
         'NAME': app.config.get('app_name'),
-        'Tags': ['master', 'v1'],
-        'Address': app.config.get('app_host'),
-        'Port': app.config.get('app_port')
+        'Tags': ['master'],
+        'Address': host,
+        'Port': port,
+        'Check': {
+            'HTTP': f'http://{host}:{port}/-/health',
+            'Interval': '10s',
+        }
     }
 
     url = 'http://{host}:{port}/v1/agent/service/register'.format(
         host=app.config.get('consul_host'), port=app.config.get('consul_port'))
 
-    with ClientSession() as session:
+    async with ClientSession() as session:
         async with session.put(url, data=ujson.dumps(payload)) as resp:
             assert resp.status == 200
 
@@ -40,8 +47,8 @@ async def unregister_service(service_name: str, app: App):
             port=app.config.get('consul_port')
         )
 
-        with ClientSession() as session:
-            async with session.get(url) as resp:
+        async with ClientSession() as session:
+            async with session.put(url) as resp:
                 assert resp.status == 200
 
         app.logger.info('Remove service "%s" from Consul' % service_name)
@@ -66,27 +73,34 @@ def run(context, host, port, consul):
     app = context.instance  # type: App
     loop = context.loop  # type: asyncio.BaseEventLoop
 
-    handler = app.make_handler(access_log=context.logger,
-                               access_log_format=app.config.get('access_log'))
-    srv = loop.run_until_complete(loop.create_server(handler, host, port))
+    runner = web.AppRunner(app, handle_signals=True,
+                           access_log=context.logger,
+                           access_log_format=app.config.get('access_log'))
 
-    if 'app_host' not in app.config:
+    try:
+        ip_address = socket.gethostbyname(app.config.get('app_hostname'))
+    except socket.gaierror:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
-            ip_address = socket.gethostbyname(app.config.get('app_hostname'))
+            s.connect(('8.8.8.8', 1))
+            ip_address = s.getsockname()[0]
         except socket.gaierror:
-            ip_address = '127.0.0.1'
+            ip_address = host
+        finally:
+            s.close()
 
-        app.config['app_host'] = ip_address
-
+    app.config['app_host'] = ip_address
     app.config['app_port'] = int(port)
 
     service_name = None
     if consul:
         service_name = loop.run_until_complete(register_service(app))
 
-    loop.run_until_complete(app.startup())
+    loop.run_until_complete(runner.setup())
 
     try:
+        site = web.TCPSite(runner, app.config['app_host'], port)
+        loop.run_until_complete(site.start())
         loop.run_forever()
     except KeyboardInterrupt:
         pass
@@ -94,11 +108,6 @@ def run(context, host, port, consul):
         if consul and service_name:
             loop.run_until_complete(unregister_service(service_name, app))
 
-        srv.close()
-        loop.run_until_complete(srv.wait_closed())
-
-        loop.run_until_complete(app.shutdown())
-        loop.run_until_complete(handler.finish_connections(60))
-        loop.run_until_complete(app.cleanup())
+        loop.run_until_complete(runner.cleanup())
 
     loop.close()

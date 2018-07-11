@@ -40,9 +40,9 @@ build: clean-build
 	python setup.py sdist
 
 build-image: build
-	docker build --build-arg app_version=`python setup.py --version` -t clayman74/passport .
-	docker tag clayman74/passport clayman74/passport:`python setup.py --version`
+	docker build --build-arg app_version=`python setup.py --version` -t registry.clayman.pro/passport .
+	docker tag registry.clayman.pro/passport registry.clayman.pro/passport:`python setup.py --version`
 
 publish-image:
-	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
-	docker push clayman74/passport
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS) registry.clayman.pro
+	docker push registry.clayman.pro/passport

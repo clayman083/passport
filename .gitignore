@@ -43,14 +43,8 @@ nosetests.xml
 
 # Mr Developer
 .cache
-.project
-.pydevproject
-.idea
-.containers
+.env
 .mypy_cache
-.scannerwork
-*.retry
-*.develop
-conf
-ansible/certs
 .pytest_cache
+.scannerwork
+venv

@@ -1,4 +1,4 @@
-FROM python:3.7.0b5-alpine3.7
+FROM python:3.7-alpine3.8
 
 ARG app_version
 

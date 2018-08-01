@@ -1,12 +1,11 @@
-import asyncio
 import logging
 import os
 
 import pkg_resources
 from aiohttp import web
-from asyncpg.pool import create_pool, Pool
+from asyncpg.pool import create_pool
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
-from raven import Client
+from raven import Client as Raven
 from raven_aiohttp import AioHttpTransport
 
 from passport import middlewares
@@ -14,65 +13,30 @@ from passport.config import Config
 from passport.handlers import api, service
 
 
-class App(web.Application):
-    def __init__(self, *args, config=None, **kwargs):
-        super(App, self).__init__(**kwargs)
+async def db_engine(app) -> None:
+    config = app['config']
 
-        self._config = config  # type: Config
-        self._db = None  # type: Pool
-        self._raven = None  # type: Client
-
-    @property
-    def config(self) -> Config:
-        return self._config
-
-    @property
-    def db(self) -> Pool:
-        return self._db
-
-    @property
-    def raven(self) -> Client:
-        return self._raven
-
-    @db.setter  # noqa
-    def db(self, value):
-        self._db = value
-
-    @raven.setter  # noqa
-    def raven(self, value):
-        self._raven = value
-
-    def copy(self):
-        raise NotImplementedError
-
-
-async def startup(app: App) -> None:
-    app.logger.info('Application serving on {host}:{port}'.format(
-        host=app.config['app_host'], port=app.config['app_port']))
-
-    app.db = await create_pool(
-        user=app.config.get('db_user'), database=app.config.get('db_name'),
-        host=app.config.get('db_host'), password=app.config.get('db_password'),
-        port=app.config.get('db_port'), min_size=1, max_size=10, loop=app.loop
+    app['db'] = await create_pool(
+        user=config.get('db_user'), database=config.get('db_name'),
+        host=config.get('db_host'), password=config.get('db_password'),
+        port=config.get('db_port'), min_size=1, max_size=10
     )
 
-    if app.config.get('sentry_dsn', None):
-        app.raven = Client(app.config['sentry_dsn'], transport=AioHttpTransport)
+    yield
+
+    await app['db'].close()
 
 
-async def cleanup(instance: App) -> None:
-    instance.logger.info('Good bye')
-
-    if instance.db:
-        await instance.db.close()
-
-
-async def init(config: Config, logger: logging.Logger=None,
-               loop: asyncio.AbstractEventLoop=None) -> App:
-    app = App(config=config, logger=logger, loop=loop, middlewares=[
+async def init(config: Config, logger: logging.Logger=None) -> web.Application:
+    app = web.Application(logger=logger, middlewares=[
         middlewares.catch_exceptions_middleware,
         middlewares.prometheus_middleware
     ])
+
+    app['config'] = config
+
+    if config.get('sentry_dsn', None):
+        app['raven'] = Raven(config['sentry_dsn'], transport=AioHttpTransport)
 
     app['distribution'] = pkg_resources.get_distribution('passport')
 
@@ -93,8 +57,7 @@ async def init(config: Config, logger: logging.Logger=None,
         )
     }
 
-    app.on_startup.append(startup)
-    app.on_cleanup.append(cleanup)
+    app.cleanup_ctx.append(db_engine)
 
     app.router.add_get('/', service.index, name='index')
 

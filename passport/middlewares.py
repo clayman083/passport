@@ -23,14 +23,14 @@ async def catch_exceptions_middleware(request: web.Request, handler):
             raise
 
         # send error to sentry
-        if request.app.raven:
-            request.app.raven.captureException()
+        if 'raven' in request.app:
+            request.app['raven'].captureException()
         raise web.HTTPInternalServerError
 
 
 @web.middleware
 async def prometheus_middleware(request: web.Request, handler):
-    app_name = request.app.config.get('app_name')
+    app_name = request.app['config']['app_name']
 
     start_time = time.time()
     request.app['metrics']['REQUEST_IN_PROGRESS'].labels(

@@ -5,19 +5,17 @@ import click
 import ujson
 from aiohttp import ClientSession, web
 
-from passport import App
 
+async def register_service(app: web.Application) -> str:
+    config = app['config']
 
-async def register_service(app: App) -> str:
-    service_name = '_'.join((
-        app.config.get('app_name'), app.config.get('app_hostname')
-    ))
-    host = app.config.get('app_host')
-    port = app.config.get('app_port')
+    service_name = f"{config['app_name']}_{config['app_hostname']}"
+    host = config['app_host']
+    port = config['app_port']
 
     payload = {
         'ID': service_name,
-        'NAME': app.config.get('app_name'),
+        'NAME': config['app_name'],
         'Tags': ['master'],
         'Address': host,
         'Port': port,
@@ -28,7 +26,7 @@ async def register_service(app: App) -> str:
     }
 
     url = 'http://{host}:{port}/v1/agent/service/register'.format(
-        host=app.config.get('consul_host'), port=app.config.get('consul_port'))
+        host=config['consul_host'], port=config['consul_port'])
 
     async with ClientSession() as session:
         async with session.put(url, data=ujson.dumps(payload)) as resp:
@@ -39,12 +37,14 @@ async def register_service(app: App) -> str:
     return service_name
 
 
-async def unregister_service(service_name: str, app: App):
+async def unregister_service(service_name: str, app: web.Application) -> None:
+    config = app['config']
+
     if service_name:
         url = 'http://{host}:{port}/v1/agent/service/deregister/{id}'.format(
             id=service_name,
-            host=app.config.get('consul_host'),
-            port=app.config.get('consul_port')
+            host=config['consul_host'],
+            port=config['consul_port']
         )
 
         async with ClientSession() as session:
@@ -58,7 +58,7 @@ async def unregister_service(service_name: str, app: App):
 @click.pass_obj
 def server(context):
     context.instance = context.loop.run_until_complete(
-        context.init_app(context.conf, context.logger, context.loop)
+        context.init_app(context.conf, context.logger)
     )
 
 
@@ -70,15 +70,15 @@ def server(context):
 def run(context, host, port, consul):
     """ Run application instance. """
 
-    app = context.instance  # type: App
-    loop = context.loop  # type: asyncio.BaseEventLoop
+    app = context.instance
+    loop = context.loop
 
     runner = web.AppRunner(app, handle_signals=True,
                            access_log=context.logger,
-                           access_log_format=app.config.get('access_log'))
+                           access_log_format=app['config']['access_log'])
 
     try:
-        ip_address = socket.gethostbyname(app.config.get('app_hostname'))
+        ip_address = socket.gethostbyname(app['config']['app_hostname'])
     except socket.gaierror:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         try:
@@ -89,8 +89,8 @@ def run(context, host, port, consul):
         finally:
             s.close()
 
-    app.config['app_host'] = ip_address
-    app.config['app_port'] = int(port)
+    app['config']['app_host'] = ip_address
+    app['config']['app_port'] = int(port)
 
     service_name = None
     if consul:
@@ -99,7 +99,7 @@ def run(context, host, port, consul):
     loop.run_until_complete(runner.setup())
 
     try:
-        site = web.TCPSite(runner, app.config['app_host'], port)
+        site = web.TCPSite(runner, app['config']['app_host'], port)
         loop.run_until_complete(site.start())
         loop.run_forever()
     except KeyboardInterrupt:

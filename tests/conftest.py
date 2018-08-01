@@ -31,7 +31,7 @@ def app(loop, pg_server, config):
         db_port=pg_server['params']['port'],
     )
 
-    app = loop.run_until_complete(init(config, logger, loop=loop))
+    app = loop.run_until_complete(init(config, logger))
 
     cwd = Path(config['app_root'])
     sql_root = cwd / 'storage' / 'sql'

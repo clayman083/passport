@@ -4,7 +4,6 @@ import jwt
 import pytest
 import ujson
 
-from passport import App
 from passport.storage.users import create_user, generate_token
 
 
@@ -19,8 +18,8 @@ def prepare_request(data, json=False):
 
 @pytest.fixture(scope='function')
 def prepare_user():
-    async def go(user: Dict, app: App):
-        async with app.db.acquire() as conn:
+    async def go(user: Dict, app):
+        async with app['db'].acquire() as conn:
             data: Dict = user.copy()
             data.setdefault('is_active', True)
             instance = await create_user(**data, connection=conn)
@@ -38,7 +37,7 @@ async def test_registration_success(aiohttp_client, app, prepare_user, json):
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 201
 
-    async with app.db.acquire() as conn:
+    async with app['db'].acquire() as conn:
         count = await conn.fetchval('SELECT COUNT(*) FROM users')
         assert count == 1
 
@@ -120,7 +119,7 @@ async def test_refresh_success(aiohttp_client, app, prepare_user):
         'email': 'john@testing.com', 'password': 'top-secret'
     }, app)
 
-    refresh_token = generate_token(user['id'], app.config.get('secret_key'),
+    refresh_token = generate_token(user['id'], app['config']['secret_key'],
                                    'refresh', expires=3600)
 
     headers = {'X-REFRESH-TOKEN': refresh_token.decode('utf-8')}
@@ -129,7 +128,7 @@ async def test_refresh_success(aiohttp_client, app, prepare_user):
     assert 'X-ACCESS-TOKEN' in resp.headers
 
     access_token = resp.headers['X-ACCESS-TOKEN']
-    token = jwt.decode(access_token, app.config.get('secret_key'),
+    token = jwt.decode(access_token, app['config']['secret_key'],
                        algorithms='HS256')
     assert token['id'] == user['id']
     assert token['token_type'] == 'access'
@@ -142,7 +141,7 @@ async def test_refresh_failed(aiohttp_client, app, prepare_user, token_type, use
     client = await aiohttp_client(app)
     url = app.router.named_resources()['api.refresh'].url_for()
 
-    refresh_token = generate_token(user_id, app.config.get('secret_key'),
+    refresh_token = generate_token(user_id, app['config']['secret_key'],
                                    token_type)
     headers = {'X-REFRESH-TOKEN': refresh_token.decode('utf-8')}
     resp = await client.post(url, headers=headers)
@@ -160,7 +159,7 @@ async def test_refresh_failed_for_inactive(aiohttp_client, app, prepare_user):
         'is_active': False
     }, app)
 
-    refresh_token = generate_token(user['id'], app.config.get('secret_key'),
+    refresh_token = generate_token(user['id'], app['config']['secret_key'],
                                    'refresh', expires=3600)
 
     headers = {'X-REFRESH-TOKEN': refresh_token.decode('utf-8')}
@@ -179,7 +178,7 @@ async def test_identify_success(aiohttp_client, app, prepare_user):
         'email': 'john@testing.com', 'password': 'top-secret'
     }, app)
 
-    access_token = generate_token(user['id'], app.config.get('secret_key'),
+    access_token = generate_token(user['id'], app['config']['secret_key'],
                                   'access', expires=3600)
 
     headers = {'X-ACCESS-TOKEN': access_token.decode('utf-8')}

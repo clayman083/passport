@@ -23,7 +23,7 @@ async def registration(request: web.Request) -> web.Response:
     validator = Validator(schema)
     validator.validate_payload(payload)
 
-    async with request.app.db.acquire() as conn:
+    async with request.app['db'].acquire() as conn:
         query = '''
           SELECT COUNT(id) FROM users WHERE users.email = '{0}'
         '''.format(payload['email'])
@@ -42,7 +42,7 @@ async def login(request: web.Request) -> web.Response:
     validator = Validator(schema)
     validator.validate_payload(payload)
 
-    async with request.app.db.acquire() as conn:
+    async with request.app['db'].acquire() as conn:
         user = await conn.fetchrow('''
             SELECT id, email, password FROM users WHERE (
                 users.email = $1 AND is_active = TRUE
@@ -60,13 +60,13 @@ async def login(request: web.Request) -> web.Response:
 
     # Create auth token
     access_token = generate_token(
-        user['id'], request.app.config['secret_key'], 'access',
-        request.app.config['access_token_expire']
+        user['id'], request.app['config']['secret_key'], 'access',
+        request.app['config']['access_token_expire']
     )
 
     refresh_token = generate_token(
-        user['id'], request.app.config['secret_key'], 'refresh',
-        request.app.config['refresh_token_expire']
+        user['id'], request.app['config']['secret_key'], 'refresh',
+        request.app['config']['refresh_token_expire']
     )
 
     headers = {
@@ -90,7 +90,8 @@ def token_required(token_type, token_name):
                 raise web.HTTPUnauthorized(text='Token required')
 
             try:
-                token_data = jwt.decode(token, request.app.config['secret_key'],
+                token_data = jwt.decode(token,
+                                        request.app['config']['secret_key'],
                                         algorithms='HS256')
             except jwt.ExpiredSignatureError:
                 raise web.HTTPUnauthorized(text='Token signature expired')
@@ -107,7 +108,7 @@ def token_required(token_type, token_name):
 
 @token_required('refresh', 'X-REFRESH-TOKEN')
 async def refresh(token: Dict, request: web.Request) -> web.Response:
-    async with request.app.db.acquire() as conn:
+    async with request.app['db'].acquire() as conn:
         user = await conn.fetchrow('''
             SELECT id, email, is_active FROM users WHERE (
                 id = $1 AND is_active = TRUE
@@ -118,8 +119,8 @@ async def refresh(token: Dict, request: web.Request) -> web.Response:
             raise web.HTTPNotFound(text='User does not found')
 
     access_token = generate_token(
-        user['id'], request.app.config['secret_key'], 'access',
-        request.app.config['access_token_expire']
+        user['id'], request.app['config']['secret_key'], 'access',
+        request.app['config']['access_token_expire']
     )
 
     headers = {
@@ -131,7 +132,7 @@ async def refresh(token: Dict, request: web.Request) -> web.Response:
 
 @token_required('access', 'X-ACCESS-TOKEN')
 async def identify(token: Dict, request: web.Request) -> web.Response:
-    async with request.app.db.acquire() as conn:
+    async with request.app['db'].acquire() as conn:
         user = await conn.fetchrow('''
             SELECT id, email FROM users WHERE (
                 id = $1 AND is_active = TRUE

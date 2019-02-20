@@ -12,22 +12,16 @@ addons:
   apt:
     packages:
     - python-pip
-  sonarcloud:
-    organization: clayman74-github
-    branches:
-      - master
 
 install:
   - pip install tox
 
 script:
   - tox
-  - sonar-scanner
 
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    make build-image;
-    make publish-image;
+    docker build -t clayman74/passport .
     fi
 
 notifications:

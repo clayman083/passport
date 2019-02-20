@@ -1,18 +1,28 @@
-FROM python:3.7-alpine3.8
+FROM python:3.7-alpine3.9 as build
 
-ARG app_version
+RUN apk add --update --no-cache --quiet make libc-dev python3-dev linux-headers gcc g++ git && \
+    python3 -m pip install --no-cache-dir --quiet -U pip && \
+    python3 -m pip install --no-cache-dir --quiet pipenv
 
-# Copy application distribution package
-COPY dist/passport-${app_version}.tar.gz /root/
+ADD . /app
 
-# Install required packages
-RUN apk add --update --no-cache make libc-dev python3-dev linux-headers gcc g++ postgresql-client && \
-    pip install --no-cache-dir -U pip && \
-    pip install --no-cache-dir /root/passport-${app_version}.tar.gz && \
-    rm /root/passport-${app_version}.tar.gz && \
-    apk del make libc-dev python3-dev linux-headers gcc g++
+WORKDIR /app
 
-RUN mkdir -p /usr/share/passport && cp /usr/local/lib/python3.7/site-packages/passport/storage/sql/* /usr/share/passport
+RUN pipenv install --dev && \
+    pipenv run python setup.py bdist_wheel
+
+
+FROM python:3.7-alpine3.9
+
+COPY --from=build /app/dist/*.whl .
+
+RUN apk add --update --no-cache --quiet make libc-dev python3-dev linux-headers gcc g++ postgresql-client && \
+    python3 -m pip install --no-cache-dir --quiet -U pip && \
+    python3 -m pip install --no-cache-dir --quiet *.whl && \
+    mkdir -p /usr/share/passport && \
+    cp /usr/local/lib/python3.7/site-packages/passport/storage/sql/* /usr/share/passport && \
+    rm -f *.whl && \
+    apk del --quiet make libc-dev python3-dev linux-headers gcc g++
 
 EXPOSE 5000
 

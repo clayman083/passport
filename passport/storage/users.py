@@ -17,8 +17,8 @@ def verify_password(password: str, encrypted_password: str) -> bool:
     return valid
 
 
-def generate_token(owner: int, secret_key: str, token_type: str='access',
-                   expires: int=900, algorithm: str='HS256') -> bytes:
+def generate_token(owner: int, secret_key: str, token_type: str = 'access',
+                   expires: int = 900, algorithm: str = 'HS256') -> bytes:
 
     token = jwt.encode({
         'id': owner,

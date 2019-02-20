@@ -1,6 +1,6 @@
 from typing import Dict
 
-import ujson
+import ujson  # type: ignore
 from aiohttp import web
 
 
@@ -12,5 +12,5 @@ async def get_payload(request: web.Request) -> Dict:
     return dict(payload)
 
 
-def json_response(data, status: int=200, **kwargs) -> web.Response:
+def json_response(data, status: int = 200, **kwargs) -> web.Response:
     return web.json_response(data, dumps=ujson.dumps, status=status, **kwargs)

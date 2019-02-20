@@ -3,9 +3,9 @@ import logging
 import logging.config
 
 import click
-import uvloop
+import uvloop  # type: ignore
 
-from passport import configure, init
+from passport.app import configure, init
 from passport.management.server import server
 
 
@@ -31,3 +31,7 @@ def cli(context, config: str):
 
 
 cli.add_command(server, name='server')
+
+
+if __name__ == "__main__":
+    cli()

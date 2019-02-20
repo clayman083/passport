@@ -1,7 +1,7 @@
 from typing import Dict
 
 import jwt
-import pytest
+import pytest  # type: ignore
 import ujson
 
 from passport.storage.users import create_user, generate_token

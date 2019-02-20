@@ -1,0 +1,39 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+coverage = "*"
+flake8 = "*"
+flake8-bugbear = "*"
+flake8-builtins-unleashed = "*"
+flake8-comprehensions = "*"
+flake8-import-order = "*"
+flake8-pytest = "*"
+mypy = "*"
+pbr = "*"
+pytest = "*"
+pytest-aiohttp = "*"
+pytest-postgres = "*"
+passport = {editable = true,path = "."}
+
+[packages]
+aiodns = "*"
+aiohttp = "*"
+asyncpg = "*"
+cchardet = "*"
+cerberus = "*"
+click = "*"
+passlib = "*"
+prometheus_client = ">=0.0.19"
+pyjwt = "*"
+pyyaml = "==4.2b4"
+raven = "*"
+raven-aiohttp = "*"
+ujson = "*"
+uvloop = "*"
+passport = {path = "."}
+
+[requires]
+python_version = "3.7"

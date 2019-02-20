@@ -1,6 +1,6 @@
 from datetime import datetime
 
-import pytest
+import pytest  # type: ignore
 
 from passport.validation import ValidationError, Validator
 

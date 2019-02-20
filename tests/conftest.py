@@ -2,9 +2,9 @@ import logging
 import subprocess
 from pathlib import Path
 
-import pytest
+import pytest  # type: ignore
 
-from passport import configure, init
+from passport.app import configure, init
 
 
 @pytest.fixture(scope='session')

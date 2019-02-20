@@ -1,6 +1,6 @@
-import prometheus_client
+import prometheus_client  # type: ignore
 from aiohttp import web
-from prometheus_client import CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST  # type: ignore
 
 from passport.handlers import json_response
 

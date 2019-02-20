@@ -13,16 +13,19 @@ addons:
     packages:
     - python-pip
 
-install:
-  - pip install tox
-
-script:
-  - tox
-
-after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    docker build -t clayman74/passport .
-    fi
+jobs:
+  include:
+    - stage: "test"
+      name: "Test"
+      script:
+        - pip install tox
+        - tox -- --pg-image=postgres:10-alpine
+    - stage: "build"
+      name: "Build"
+      if: tag IS present
+      script:
+        - docker build -t clayman74/passport .
+        - docker tag clayman74/passport clayman74/passport:$TRAVIS_TAG
 
 notifications:
   slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5

@@ -1,3 +1,14 @@
+.cache
+.eggs
+.mypy_cache
+.pytest_cache
+.scannerwork
+.sonarlint
+.tox
+.vscode
 ansible
-passport
+build
+dist
+passport.egg-info
 tests
+venv

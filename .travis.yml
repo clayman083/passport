@@ -19,13 +19,13 @@ jobs:
       name: "Test"
       script:
         - pip install tox
-        - tox -- --pg-image=postgres:10-alpine
+        - tox -- --pg-image=postgres:11-alpine
     - stage: "build"
       name: "Build"
       if: tag IS present
       script:
-        - docker build -t clayman74/passport .
-        - docker tag clayman74/passport clayman74/passport:$TRAVIS_TAG
+        - make build
+        - make publish
 
 notifications:
   slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5

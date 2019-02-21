@@ -25,24 +25,18 @@ clean-test:
 	rm -f tests/coverage.xml
 
 install: clean
-	pip install -e .
+	pipenv install --dev -e .
 
 lint:
-	flake8 passport tests
+	pipenv run flake8 passport tests
 
 test:
-	py.test
+	tox -- --pg-image=postgres:11-alpine
 
-test-all:
-	tox -- --pg-image=postgres:alpine
+build:
+	docker build -t $(DOCKER_USER)/passport .
+	docker tag $(DOCKER_USER)/passport $(DOCKER_USER)/passport:$(TRAVIS_TAG)
 
-build: clean-build
-	python setup.py sdist
-
-build-image: build
-	docker build --build-arg app_version=`python setup.py --version` -t registry.clayman.pro/passport .
-	docker tag registry.clayman.pro/passport registry.clayman.pro/passport:`python setup.py --version`
-
-publish-image:
-	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS) registry.clayman.pro
-	docker push registry.clayman.pro/passport
+publish:
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
+	docker push $(DOCKER_USER)/passport

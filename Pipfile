@@ -33,7 +33,6 @@ raven = "*"
 raven-aiohttp = "*"
 ujson = "*"
 uvloop = "*"
-passport = {path = "."}
 
 [requires]
 python_version = "3.7"

@@ -1,4 +1,7 @@
-.PHONY: clean clean-test clean-pyc clean-build
+.PHONY: build clean clean-test clean-pyc clean-build
+NAME	:= clayman083/passport
+VERSION ?= latest
+
 
 clean: clean-build clean-image clean-pyc clean-test
 
@@ -29,14 +32,18 @@ install: clean
 
 lint:
 	pipenv run flake8 passport tests
+	pipenv run mypy passport tests
 
 test:
+	py.test
+
+test-all:
 	tox -- --pg-image=postgres:11-alpine
 
 build:
-	docker build -t $(DOCKER_USER)/passport .
-	docker tag $(DOCKER_USER)/passport $(DOCKER_USER)/passport:$(TRAVIS_TAG)
+	docker build -t ${NAME} .
+	docker tag ${NAME} ${NAME}:$(VERSION)
 
 publish:
 	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
-	docker push $(DOCKER_USER)/passport
+	docker push ${NAME}

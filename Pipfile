@@ -4,35 +4,43 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+black = "*"
 coverage = "*"
+faker = "*"
 flake8 = "*"
 flake8-bugbear = "*"
 flake8-builtins-unleashed = "*"
 flake8-comprehensions = "*"
 flake8-import-order = "*"
 flake8-pytest = "*"
+flake8-print = "*"
 mypy = "*"
 pbr = "*"
-pytest = "*"
+pytest = "==5.0.1"
 pytest-aiohttp = "*"
 pytest-postgres = "*"
+rope = "*"
 passport = {editable = true,path = "."}
 
 [packages]
-aiodns = "*"
-aiohttp = "*"
+aiodns = "==2.0.0"
+aiohttp = "==3.6.0"
+aiohttp-metrics = {git = "https://github.com/clayman74/aiohttp-metrics.git", ref="v0.1.2"}
 asyncpg = "*"
-cchardet = "*"
+attrs = "==19.1.0"
+cchardet = "==2.1.4"
 cerberus = "*"
-click = "*"
+click = "==7.0"
 passlib = "*"
+pbr = "==5.4.3"
 prometheus_client = ">=0.0.19"
 pyjwt = "*"
-pyyaml = "==4.2b4"
-raven = "*"
-raven-aiohttp = "*"
-ujson = "*"
-uvloop = "*"
+sentry-sdk = "==0.12.2"
+ujson = "==1.35"
+uvloop = "==0.13.0"
 
 [requires]
 python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

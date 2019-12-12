@@ -1,0 +1,34 @@
+name: Tests
+
+on:
+  push:
+    tags:
+      - '!refs/tags/*'
+    branches:
+      - '*'
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7'
+          architecture: 'x64'
+
+      - name: Install requirements
+        # Устанавливаем зависимости
+        run: pip install pipenv tox
+
+      - name: Run tests
+        run: tox -- --pg-image=postgres:11-alpine
+
+      - name: Send notification to Telegram
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          args: ${{ github.repository }} event ${{ github.event_name }} status - ${{ job.status }}.

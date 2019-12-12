@@ -1,4 +1,4 @@
-FROM python:3.7-alpine3.9 as build
+FROM python:3.7-alpine3.10 as build
 
 RUN apk add --update --no-cache --quiet make libc-dev python3-dev linux-headers gcc g++ git postgresql-dev && \
     python3 -m pip install --no-cache-dir --quiet -U pip && \
@@ -13,7 +13,7 @@ RUN pipenv install --dev && \
     pipenv run python setup.py bdist_wheel
 
 
-FROM python:3.7-alpine3.9
+FROM python:3.7-alpine3.10
 
 COPY --from=build /app/dist/*.whl .
 

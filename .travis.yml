@@ -1,31 +1,30 @@
 ---
-language: python
-python:
-  - "3.7-dev"
 
-sudo: required
+  language: python
+  python:
+    - 3.8
 
-services:
-  - docker
+  sudo: required
 
-addons:
-  apt:
-    packages:
-    - python-pip
+  services:
+    - docker
 
-jobs:
-  include:
-    - stage: "test"
-      name: "Test"
-      script:
-        - pip install tox
-        - tox -- --pg-image=postgres:11-alpine
-    - stage: "build"
-      name: "Build"
-      if: tag IS present
-      script:
-        - make build
-        - make publish
+  addons:
+    apt:
+      packages:
+      - python-pip
 
-notifications:
-  slack: claymanpro:5w9rLMZvWaCzlzUJPrUChXY5
+  jobs:
+    include:
+      - stage: "test"
+        name: "Test"
+        script:
+          - pip install poetry tox
+          - tox -- --pg-image=postgres:11-alpine
+
+      - stage: "build"
+        name: "Build and publish"
+        if: tag IS present
+        script:
+          - make build VERSION=$TRAVIS_TAG
+          - make publish VERSION=$TRAVIS_TAG

@@ -12,3 +12,4 @@ class TokenType(Enum):
 class User:
     key: int
     email: str
+    password: str = ""

@@ -1,31 +1,31 @@
-import config
+from typing import AsyncGenerator
+
+import config  # type: ignore
 from aiohttp import web
 from aiohttp_metrics import setup as setup_metrics  # type: ignore
-from aiohttp_micro import setup as setup_micro  # type: ignore
+from aiohttp_micro import (  # type: ignore
+    AppConfig as BaseConfig,
+    setup as setup_micro,
+)
 from asyncpg.pool import create_pool  # type: ignore
 
 from passport.handlers import api
 
 
-class DBConfig(config.PostgresConfig):
-    min_pool_size = config.IntField(default=1, env="POSTGRES_MIN_POOL_SIZE")
-    max_pool_size = config.IntField(default=1, env="POSTGRES_MAX_POOL_SIZE")
-
-
 class TokenConfig(config.Config):
-    expire = config.IntField()
-    secret_key = config.StrField()
+    expire = config.IntField(default=900, env="TOKEN_EXPIRE")
+    private_key = config.StrField(path="passport.key", env="TOKEN_PRIVATE_KEY")
+    public_key = config.StrField(
+        path="passport.key.pub", env="TOKEN_PUBLIC_KEY"
+    )
 
 
-class AppConfig(config.Config):
-    consul = config.NestedField(config.ConsulConfig, key="consul")
-    db = config.NestedField(DBConfig, key="db")
-    debug = config.BoolField(default=False)
-    sentry_dsn = config.StrField()
-    tokens = config.NestedField(TokenConfig, key="tokens")
+class AppConfig(BaseConfig):
+    db = config.NestedField(config.PostgresConfig)
+    tokens = config.NestedField(TokenConfig)
 
 
-async def db_engine(app: web.Application) -> None:
+async def db_engine(app: web.Application) -> AsyncGenerator[None, None]:
     config: AppConfig = app["config"]
 
     app["db"] = await create_pool(
@@ -33,7 +33,7 @@ async def db_engine(app: web.Application) -> None:
         port=config.db.port,
         user=config.db.user,
         password=config.db.password,
-        database=config.db.name,
+        database=config.db.database,
         min_size=config.db.min_pool_size,
         max_size=config.db.max_pool_size,
     )

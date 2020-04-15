@@ -28,17 +28,20 @@ clean-test:
 	rm -f tests/coverage.xml
 
 install: clean
-	pipenv install --dev -e .
+	poetry install
 
 lint:
-	pipenv run flake8 passport tests
-	pipenv run mypy passport tests
+	poetry run flake8 passport tests
+	poetry run mypy passport tests
+
+run:
+	poetry run python3 -m passport --conf-dir=./ server run -t develop -t 'traefik.enable=true' -t 'traefik.http.routers.passport.rule=Host(`passport.dev.clayman.pro`)' -t 'traefik.http.routers.passport.entrypoints=web' -t 'traefik.http.routers.passport.service=passport' -t 'traefik.http.routers.passport.middlewares=passport-redirect@consulcatalog' -t 'traefik.http.routers.passport-secure.rule=Host(`passport.dev.clayman.pro`)' -t 'traefik.http.routers.passport-secure.entrypoints=websecure' -t 'traefik.http.routers.passport-secure.service=passport' -t 'traefik.http.routers.passport-secure.tls=true' -t 'traefik.http.middlewares.passport-redirect.redirectscheme.scheme=https' -t 'traefik.http.middlewares.passport-redirect.redirectscheme.permanent=true'
 
 test:
 	py.test
 
 test-all:
-	tox -- --pg-image=postgres:11-alpine
+	tox -- --pg-image=postgres:12-alpine
 
 build:
 	docker build -t ${NAME} .

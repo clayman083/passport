@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import jwt
 
-from passport.entities import TokenType, User
+from passport.domain import TokenType, User
 from passport.exceptions import BadToken, TokenExpired
 
 
@@ -23,7 +23,7 @@ class TokenService:
             },
             private_key,
             algorithm="RS256",
-        )
+        ).decode("utf-8")
 
     def decode_token(
         self, token: str, token_type: TokenType, public_key: str
@@ -37,7 +37,15 @@ class TokenService:
         except jwt.DecodeError:
             raise BadToken()
 
-        if token_data.get("token_type", None) != token_type:
+        if token_data.get("token_type", None) != token_type.value:
             raise BadToken()
 
-        return User(key=token_data["id"], email=token_data["email"])
+        if "id" in token_data and token_data["id"]:
+            try:
+                user_key = int(token_data["id"])
+            except ValueError:
+                raise BadToken()
+        else:
+            raise BadToken()
+
+        return User(key=user_key, email=token_data["email"])

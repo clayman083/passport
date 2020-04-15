@@ -55,5 +55,6 @@ nosetests.xml
 *.sublime-project
 *.sublime-workspace
 *.develop
+conf/*
 develop.yml
 .vscode/tags

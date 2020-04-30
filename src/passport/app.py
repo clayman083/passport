@@ -13,7 +13,12 @@ from passport.handlers import api
 
 
 class TokenConfig(config.Config):
-    expire = config.IntField(default=900, env="TOKEN_EXPIRE")
+    access_token_expire = config.IntField(
+        default=900, env="ACCESS_TOKEN_EXPIRE"
+    )
+    refresh_token_expire = config.IntField(
+        default=43200, env="REFRESH_TOKEN_EXPIRE"
+    )
     private_key = config.StrField(path="passport.key", env="TOKEN_PRIVATE_KEY")
     public_key = config.StrField(
         path="passport.key.pub", env="TOKEN_PUBLIC_KEY"

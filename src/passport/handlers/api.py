@@ -69,14 +69,14 @@ async def login(payload, request: web.Request) -> web.Response:
         user,
         token_type=TokenType.access,
         private_key=config.tokens.private_key,
-        expire=config.tokens.expire,
+        expire=config.tokens.access_token_expire,
     )
 
     refresh_token = token_service.generate_token(
         user,
         token_type=TokenType.refresh,
         private_key=config.tokens.private_key,
-        expire=config.tokens.expire,
+        expire=config.tokens.refresh_token_expire,
     )
 
     schema = CredentialsSchema(only=("key", "email"))
@@ -120,7 +120,7 @@ async def refresh(request: web.Request) -> web.Response:
         user,
         token_type=TokenType.access,
         private_key=config.tokens.private_key,
-        expire=config.tokens.expire,
+        expire=config.tokens.access_token_expire,
     )
 
     schema = CredentialsSchema(only=("key", "email"))

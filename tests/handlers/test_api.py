@@ -148,7 +148,7 @@ async def test_refresh_success(aiohttp_client, app, prepare_user):
         user,
         token_type=TokenType.refresh,
         private_key=app["config"].tokens.private_key,
-        expire=app["config"].tokens.expire,
+        expire=app["config"].tokens.refresh_token_expire,
     )
 
     headers = {"X-REFRESH-TOKEN": refresh_token}
@@ -180,7 +180,7 @@ async def test_refresh_failed_with_wrong_token_type(
         user,
         token_type=TokenType.access,
         private_key=app["config"].tokens.private_key,
-        expire=app["config"].tokens.expire,
+        expire=app["config"].tokens.refresh_token_expire,
     )
 
     headers = {"X-REFRESH-TOKEN": refresh_token}
@@ -202,7 +202,8 @@ async def test_refresh_failed(aiohttp_client, app, prepare_user, user_id):
             "email": "",
             "token_type": TokenType.refresh.value,
             "iss": "urn:passport",
-            "exp": now + timedelta(seconds=app["config"].tokens.expire),
+            "exp": now
+            + timedelta(seconds=app["config"].tokens.refresh_token_expire),
             "iat": now,
         },
         app["config"].tokens.private_key,
@@ -233,7 +234,7 @@ async def test_refresh_failed_for_inactive(aiohttp_client, app, prepare_user):
         user,
         token_type=TokenType.refresh,
         private_key=app["config"].tokens.private_key,
-        expire=app["config"].tokens.expire,
+        expire=app["config"].tokens.refresh_token_expire,
     )
 
     headers = {"X-REFRESH-TOKEN": refresh_token}

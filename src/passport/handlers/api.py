@@ -91,6 +91,28 @@ async def login(payload, request: web.Request) -> web.Response:
     )
 
 
+async def me(request: web.Request) -> web.Response:
+    config = request.app["config"]
+    token_service = TokenService()
+
+    token = request.headers.get("X-Access-Token", "")
+
+    if not token:
+        raise web.HTTPUnauthorized(text="Auth token required")
+
+    try:
+        user = token_service.decode_token(
+            token, TokenType.access, public_key=config.tokens.public_key
+        )
+    except BadToken:
+        raise web.HTTPForbidden
+
+    schema = CredentialsSchema(only=("key", "email"))
+    response = schema.dump(user)
+
+    return json_response(response)
+
+
 async def refresh(request: web.Request) -> web.Response:
     config = request.app["config"]
     tokens = TokenService()
@@ -124,6 +146,6 @@ async def refresh(request: web.Request) -> web.Response:
     )
 
     schema = CredentialsSchema(only=("key", "email"))
-    response = schema.dumps(user)
+    response = schema.dump(user)
 
     return json_response(response, headers={"X-ACCESS-TOKEN": access_token})

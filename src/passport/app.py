@@ -58,6 +58,7 @@ async def init(app_name: str, config: AppConfig) -> web.Application:
 
     app.router.add_routes(
         [
+            web.get("/api/me", api.me, name="api.me"),
             web.post("/api/login", api.login, name="api.login"),
             web.post(
                 "/api/register", api.registration, name="api.registration"

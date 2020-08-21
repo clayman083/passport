@@ -3,7 +3,6 @@
       ".eggs": true,
       ".mypy_cache": true,
       ".tox": true,
-      // ".vscode": true,
       "*.egg-info": true,
       "*.lock": true,
       ".coverage": true,
@@ -20,10 +19,14 @@
   "python.pythonPath": ".venv/bin/python3.8",
   "python.autoComplete.extraPaths": [
       "${workspaceFolder}",
-      "${workspaceFolder}/.venv/lib/python3.7",
-      "${workspaceFolder}/.venv/lib/python3.7/site-packages"
+      "${workspaceFolder}/.venv/lib/python3.8",
+      "${workspaceFolder}/.venv/lib/python3.8/site-packages"
   ],
-
+  "python.analysis.extraPaths": [
+      "${workspaceFolder}",
+      "${workspaceFolder}/.venv/lib/python3.8",
+      "${workspaceFolder}/.venv/lib/python3.8/site-packages"
+  ],
   "[python]": {
       "editor.formatOnSave": true
   }

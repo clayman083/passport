@@ -1,5 +1,5 @@
 import asyncio
-import os
+from pathlib import Path
 
 import click
 import uvloop  # type: ignore
@@ -22,8 +22,10 @@ def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
     uvloop.install()
     loop = asyncio.get_event_loop()
 
-    if not conf_dir:
-        conf_dir = os.path.dirname(__file__)
+    if conf_dir:
+        conf_path = Path(conf_dir)
+    else:
+        conf_path = Path.cwd()
 
     consul_config = ConsulConfig()
     load(consul_config, providers=[EnvValueProvider()])
@@ -39,7 +41,7 @@ def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
             },
         }
     )
-    load(config, providers=[FileValueProvider(conf_dir), EnvValueProvider()])
+    load(config, providers=[FileValueProvider(conf_path), EnvValueProvider()])
 
     app = loop.run_until_complete(init("passport", config))
 

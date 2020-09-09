@@ -8,6 +8,7 @@ from passlib.handlers.pbkdf2 import pbkdf2_sha512  # type: ignore
 
 from passport.domain import TokenType, User
 from passport.services.tokens import TokenService
+from passport.storage.users import users as users_table
 
 
 def prepare_request(data, json=False):
@@ -22,34 +23,29 @@ def prepare_request(data, json=False):
 @pytest.fixture(scope="function")
 def prepare_user():
     async def go(user: Dict, app):
-        async with app["db"].acquire() as conn:
-            data: Dict = user.copy()
-            data.setdefault("is_active", True)
+        data: Dict = user.copy()
+        data.setdefault("is_active", True)
 
-            query = """
-              INSERT INTO users (email, password, is_active, created_on)
-                VALUES ($1, $2, $3, $4)
-              RETURNING id
-            """
-            key = await conn.fetchval(
-                query,
-                data["email"],
-                pbkdf2_sha512.encrypt(
+        key = await app["db"].fetch_val(
+            users_table.insert().returning(users_table.c.id),
+            values={
+                "email": data["email"],
+                "password": pbkdf2_sha512.encrypt(
                     data["password"], rounds=10000, salt_size=10
                 ),
-                data["is_active"],
-                datetime.now(),
-            )
+                "is_active": data["is_active"],
+                "created_on": datetime.now(),
+            },
+        )
 
-            instance = User(key=key, email=data["email"])
-        return instance
+        return User(key=key, email=data["email"], password=data["password"])
 
     return go
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize("json", [True, False])
-async def test_registration_success(aiohttp_client, app, prepare_user, json):
+async def test_registration_success(aiohttp_client, app, json):
     data = {"email": "john@testing.com", "password": "top-secret"}
     client = await aiohttp_client(app)
 
@@ -57,16 +53,10 @@ async def test_registration_success(aiohttp_client, app, prepare_user, json):
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 201
 
-    async with app["db"].acquire() as conn:
-        count = await conn.fetchval("SELECT COUNT(*) FROM users")
-        assert count == 1
-
 
 @pytest.mark.integration
 @pytest.mark.parametrize("json", [True, False])
-async def test_registration_failed_without_password(
-    aiohttp_client, app, prepare_user, json
-):
+async def test_registration_failed_without_password(aiohttp_client, app, json):
     data = {"email": "john@testing.com"}
     client = await aiohttp_client(app)
 

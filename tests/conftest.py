@@ -1,8 +1,7 @@
-import os
-import subprocess
-from pathlib import Path
-
+import faker
 import pytest  # type: ignore
+from aiohttp import web
+from aiohttp_storage.tests import storage
 
 from passport.app import AppConfig, init
 
@@ -43,41 +42,27 @@ def app(loop, pg_server, config):
 
     app = loop.run_until_complete(init("passport", config))
 
-    cwd = Path(os.path.dirname(__file__))
-    sql_root = cwd / ".." / "src" / "passport" / "storage" / "sql"
+    with storage(config=app["config"].db, root=app["storage_root"]):
+        yield app
 
-    cmd = "cat {schema} | PGPASSWORD='{password}' psql -h {host} -p {port} -d {database} -U {user}"  # noqa
 
-    subprocess.call(
-        [
-            cmd.format(
-                schema=(sql_root / "upgrade_schema.sql").as_posix(),
-                host=config.db.host,
-                port=config.db.port,
-                user=config.db.user,
-                password=config.db.password,
-                database=config.db.database,
-            )
-        ],
-        shell=True,
-        cwd=cwd.as_posix(),
-    )
+@pytest.yield_fixture(scope="function")
+def prepared_app(loop, app):
+    runner = web.AppRunner(app)
+    loop.run_until_complete(runner.setup())
 
     yield app
 
-    subprocess.call(
-        [
-            cmd.format(
-                schema=(sql_root / "downgrade_schema.sql").as_posix(),
-                host=config.db.host,
-                port=config.db.port,
-                user=config.db.user,
-                password=config.db.password,
-                database=config.db.database,
-            )
-        ],
-        shell=True,
-        cwd=cwd.as_posix(),
-    )
+    loop.run_until_complete(runner.cleanup())
 
-    loop.run_until_complete(app.cleanup())
+
+@pytest.fixture(scope="function")
+async def client(app, aiohttp_client):
+    client = await aiohttp_client(app)
+
+    return client
+
+
+@pytest.fixture(scope="session")
+def fake():
+    return faker.Faker()

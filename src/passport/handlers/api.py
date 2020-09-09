@@ -34,12 +34,11 @@ class CredentialsSchema(Schema):
 
 @validate_payload(CredentialsSchema)
 async def registration(payload, request: web.Request) -> web.Response:
-    try:
-        async with request.app["db"].acquire() as conn:
-            storage = DBStorage(conn=conn)
-            service = UserService(storage)
+    storage = DBStorage(request.app["db"])
 
-            user = await service.register(payload["email"], payload["password"])
+    try:
+        service = UserService(storage)
+        user = await service.register(payload["email"], payload["password"])
     except EntityAlreadyExist:
         return json_response({"errors": {"email": "Already exist"}}, status=422)
 
@@ -54,12 +53,11 @@ async def login(payload, request: web.Request) -> web.Response:
     config = request.app["config"]
     token_service = TokenService()
 
-    try:
-        async with request.app["db"].acquire() as conn:
-            storage = DBStorage(conn=conn)
-            service = UserService(storage)
+    storage = DBStorage(request.app["db"])
 
-            user = await service.login(payload["email"], payload["password"])
+    try:
+        service = UserService(storage)
+        user = await service.login(payload["email"], payload["password"])
     except Forbidden:
         raise web.HTTPForbidden()
     except EntityNotFound:
@@ -130,11 +128,10 @@ async def refresh(request: web.Request) -> web.Response:
         raise web.HTTPForbidden
 
     try:
-        async with request.app["db"].acquire() as conn:
-            storage = DBStorage(conn=conn)
-            service = UserService(storage)
+        storage = DBStorage(request.app["db"])
 
-            user = await service.fetch(key=user.key, active=True)
+        service = UserService(storage)
+        user = await service.fetch(key=user.key, active=True)
     except EntityNotFound:
         raise web.HTTPForbidden
 

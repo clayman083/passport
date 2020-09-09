@@ -4,6 +4,7 @@ from pathlib import Path
 import click
 import uvloop  # type: ignore
 from aiohttp_micro.management.server import server  # type: ignore
+from aiohttp_storage.management.storage import storage  # type: ignore
 from config import (  # type: ignore
     ConsulConfig,
     EnvValueProvider,
@@ -16,7 +17,7 @@ from passport.app import AppConfig, init
 
 @click.group()
 @click.option("--conf-dir", default=None)
-@click.option("--debug", default=False)
+@click.option("--debug", default=False, is_flag=True)
 @click.pass_context
 def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
     uvloop.install()
@@ -51,6 +52,7 @@ def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
 
 
 cli.add_command(server, name="server")
+cli.add_command(storage, name="storage")
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from databases import Database
 from sqlalchemy import func
 from sqlalchemy.orm.query import Query
 
-from passport.domain import User
+from passport.domain import Permission, User
 from passport.domain.storage.users import UsersRepo
 
 
@@ -20,11 +20,41 @@ users = sqlalchemy.Table(
     ),
     sqlalchemy.Column("password", sqlalchemy.String(255), nullable=False),
     sqlalchemy.Column("is_active", sqlalchemy.Boolean, default=True),
+    sqlalchemy.Column("is_superuser", sqlalchemy.Boolean, default=False),
     sqlalchemy.Column(
         "last_login", sqlalchemy.DateTime, default=datetime.utcnow
     ),
     sqlalchemy.Column(
         "created_on", sqlalchemy.DateTime, default=datetime.utcnow
+    ),
+)
+
+permissions = sqlalchemy.Table(
+    "permissions",
+    metadata,
+    sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+    sqlalchemy.Column(
+        "name", sqlalchemy.String(255), nullable=False, unique=True
+    ),
+    sqlalchemy.Column("enabled", sqlalchemy.Boolean, default=True),
+)
+
+user_permissions = sqlalchemy.Table(
+    "user_permissions",
+    metadata,
+    sqlalchemy.Column(
+        "user_id",
+        sqlalchemy.Integer,
+        sqlalchemy.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        primary_key=True,
+    ),
+    sqlalchemy.Column(
+        "permission_id",
+        sqlalchemy.Integer,
+        sqlalchemy.ForeignKey("permissions.id", ondelete="CASCADE"),
+        nullable=False,
+        primary_key=True,
     ),
 )
 
@@ -69,15 +99,32 @@ class UsersDBRepo(UsersRepo):
 
         return count > 0
 
-    async def save_user(self, email: str, password: str) -> int:
+    async def add(self, user: User) -> None:
         key = await self._database.execute(
             users.insert().returning(users.c.id),
             values={
-                "email": email,
-                "password": password,
+                "email": user.email,
+                "password": user.password,
                 "is_active": True,
                 "created_on": datetime.now(),
             },
         )
 
-        return key
+        if user.permissions:
+            await self._database.execute_many(
+                user_permissions.insert(),
+                [
+                    {"user_id": key, "permission_id": permission.key}
+                    for permission in user.permissions
+                ],
+            )
+
+        user.key = key
+
+    async def add_permission(self, user: User, permission: Permission) -> None:
+        raise NotImplementedError()
+
+    async def remove_permission(
+        self, user: User, permission: Permission
+    ) -> None:
+        raise NotImplementedError()

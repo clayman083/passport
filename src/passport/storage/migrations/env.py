@@ -6,7 +6,12 @@ from aiohttp_storage.storage import metadata
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from passport.storage.users import users  # noqa: F401
+from passport.storage.sessions import sessions  # noqa: F401
+from passport.storage.users import (  # noqa: F401
+    permissions,
+    user_permissions,
+    users,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,4 +1,5 @@
-import attr
+from dataclasses import asdict
+
 from aiohttp import web
 from aiohttp_micro.exceptions import (  # type:ignore
     EntityAlreadyExist,
@@ -27,7 +28,7 @@ class CredentialsSchema(Schema):
     @pre_dump
     def serialize_entity(self, entity, **kwargs):
         if isinstance(entity, self.entity_cls):
-            return attr.asdict(entity, recurse=False)
+            return asdict(entity)
         else:
             return entity
 
@@ -50,9 +51,6 @@ async def registration(payload, request: web.Request) -> web.Response:
 
 @validate_payload(CredentialsSchema)
 async def login(payload, request: web.Request) -> web.Response:
-    config = request.app["config"]
-    token_service = TokenService()
-
     storage = DBStorage(request.app["db"])
 
     try:
@@ -62,6 +60,9 @@ async def login(payload, request: web.Request) -> web.Response:
         raise web.HTTPForbidden()
     except EntityNotFound:
         raise web.HTTPNotFound()
+
+    token_service = TokenService()
+    config = request.app["config"]
 
     access_token = token_service.generate_token(
         user,

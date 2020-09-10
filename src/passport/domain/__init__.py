@@ -1,6 +1,8 @@
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import List, Optional
 
-import attr
+from passlib.handlers.pbkdf2 import pbkdf2_sha512  # type: ignore
 
 
 class TokenType(Enum):
@@ -8,8 +10,31 @@ class TokenType(Enum):
     refresh = "refresh"
 
 
-@attr.dataclass(slots=True, kw_only=True)
-class User:
+@dataclass
+class Entity:
     key: int
+
+
+@dataclass
+class Permission(Entity):
+    name: str
+
+
+@dataclass
+class User(Entity):
     email: str
-    password: str = ""
+    password: Optional[str] = None
+    is_superuser: bool = False
+    permissions: List[Permission] = field(default_factory=list)
+
+    def set_password(self, password: str) -> None:
+        self.password = pbkdf2_sha512.encrypt(
+            password, rounds=10000, salt_size=10
+        )
+
+    def verify_password(self, password: str) -> bool:
+        try:
+            valid = pbkdf2_sha512.verify(password, self.password)
+        except ValueError:
+            valid = False
+        return valid

@@ -9,7 +9,7 @@ from aiohttp_micro import (  # type: ignore
 )
 from aiohttp_storage import setup as setup_storage, StorageConfig
 
-from passport.handlers import api
+from passport.handlers import api, auth
 
 
 class TokenConfig(config.Config):
@@ -41,6 +41,15 @@ async def init(app_name: str, config: AppConfig) -> web.Application:
         app,
         root=os.path.join(app["app_root"], "storage"),
         config=app["config"].db,
+    )
+
+    app.router.add_routes(
+        [
+            web.put("/auth/identify", auth.identify, name="auth.identify"),
+            web.post("/auth/login", auth.login, name="auth.login"),
+            web.post("/auth/logout", auth.logout, name="auth.logout"),
+            web.get("/auth/profile", auth.profile, name="auth.profile"),
+        ]
     )
 
     app.router.add_routes(

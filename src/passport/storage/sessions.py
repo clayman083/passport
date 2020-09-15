@@ -1,6 +1,6 @@
 from datetime import datetime
 
-import sqlalchemy
+import sqlalchemy  # type: ignore
 from aiohttp_storage.storage import metadata
 from databases import Database
 

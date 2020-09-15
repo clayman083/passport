@@ -45,7 +45,7 @@ async def login(payload: Dict[str, str], request: web.Request) -> web.Response:
         value=session_key,
         max_age=30 * 24 * 60 * 60,
         domain=".clayman.pro",
-        httponly=True,
+        httponly="True",
     )
 
     return redirect

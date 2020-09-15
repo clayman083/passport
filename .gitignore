@@ -49,6 +49,7 @@ nosetests.xml
 .idea
 .containers
 .mypy_cache
+.ssh
 .venv
 .vscode/.ropeproject
 *.retry

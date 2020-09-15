@@ -9,6 +9,10 @@
       "build": true
   },
 
+  "files.associations": {
+    "**/*.yml": "ansible"
+  },
+
   "python.linting.enabled": true,
   "python.linting.flake8Enabled": true,
   "python.formatting.provider": "black",

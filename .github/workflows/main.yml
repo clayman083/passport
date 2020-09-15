@@ -1,6 +1,11 @@
 name: Tests
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - '!refs/tags/*'
+    branches:
+      - '*'
 
 jobs:
   tests:

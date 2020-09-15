@@ -1,5 +1,5 @@
 .PHONY: build clean clean-test clean-pyc clean-build
-NAME	:= clayman083/passport
+NAME	:= ghcr.io/clayman-micro/passport
 VERSION ?= latest
 
 

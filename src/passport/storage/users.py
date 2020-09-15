@@ -1,11 +1,11 @@
 from datetime import datetime
 
-import sqlalchemy
+import sqlalchemy  # type: ignore
 from aiohttp_micro.exceptions import EntityNotFound  # type: ignore
 from aiohttp_storage.storage import metadata
 from databases import Database
 from sqlalchemy import func
-from sqlalchemy.orm.query import Query
+from sqlalchemy.orm.query import Query  # type: ignore
 
 from passport.domain import Permission, User
 from passport.domain.storage.users import UsersRepo

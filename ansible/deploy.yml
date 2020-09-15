@@ -1,0 +1,156 @@
+---
+
+- hosts: servers
+  become: true
+
+  vars:
+    domain: clayman.pro
+
+    consul_host: "consul.service.consul"
+    consul_port: "8500"
+
+    postgres_host: "postgresql.service.consul"
+    postgres_port: "5432"
+    postgres_user: "passport"
+    postgres_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      31316231383762376437643530306238653762663839303465333234646230306462316331373966
+      3537656362346433653862373336366434633963363866300a306139633031633636346564636666
+      36333130333734616131386131346562303336326138653030613839636163323738653330353631
+      6338383135363365650a623761636137633161366130363064613832303439303865633033616631
+      36373032613866633332333631393731313766313935336162386561353664313565613233643837
+      3064396334613662363032333763306566323237306333653031
+    postgres_database: "passport"
+
+    docker_username: "{{ lookup('env','DOCKER_USERNAME') }}"
+    docker_password: "{{ lookup('env','DOCKER_PASSWORD') }}"
+
+    private_network: "{{ ansible_eth1['ipv4'] }}"
+
+    services_dir: /opt/services
+
+    passport_conf_dir: "{{ services_dir }}/passport/conf.d"
+
+    passport_domain: "passport.{{ domain }}"
+    passport_sentry_dsn: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      65353661356332396633653565306635393731323931656430656366643932316136373036393163
+      6161323163346164386365306238613234303030613139370a656164373937306636303838623831
+      35623930393862656437623363663839383232353566653936653038316637346463613163316333
+      6131306635386666340a343361323166316537356539313335626233326562353265636133306331
+      63343833303730303135613865313733333063343961323661396261363339303038623137303939
+      34363734346237373332326434616366613465366563373232363638396164346332643865313933
+      303937626566636133333366643165613266
+
+    passport_image: ghcr.io/clayman-micro/passport
+    passport_version: "{{ lookup('env','PASSPORT_VERSION')|default('latest') }}"
+
+    passport_replicas: 1
+
+  tasks:
+    - name: Prepare service folder
+      file: path={{ item }} state=directory
+      with_items:
+        - "{{ passport_conf_dir }}"
+
+    - name: Generate RSA keypair for tokens
+      openssh_keypair:
+        path: "{{ passport_conf_dir }}/passport.key"
+
+    - name: Read private file
+      shell: "cat {{ passport_conf_dir }}/passport.key"
+      register: private_key
+
+    - name: Add private key to secrets
+      docker_secret:
+        name: passport_private_key
+        data: "{{ private_key.stdout }}"
+        state: present
+
+    - name: Read public file
+      shell: "cat {{ passport_conf_dir }}/passport.key.pub"
+      register: public_key
+
+    - name: Add private key to secrets
+      docker_secret:
+        name: passport_public_key
+        data: "{{ public_key.stdout }}"
+        state: present
+
+    - name: Log into private registry
+      docker_login:
+        registry: ghcr.io
+        username: "{{ docker_username }}"
+        password: "{{ docker_password }}"
+
+    - name: Pull image
+      docker_image:
+        name: "{{ passport_image }}:{{ passport_version }}"
+        source: pull
+
+    - name: Apply database migrations
+      docker_container:
+        name: passport_migrations
+        image: "{{ passport_image }}:{{ passport_version }}"
+        command: --conf-dir=/etc/passport storage upgrade
+        dns_servers:
+          - "{{ private_network.address }}"
+        env:
+          CONSUL_HOST: "{{ consul_host }}"
+          CONSUL_PORT: "{{ consul_port }}"
+          POSTGRES_HOST: "{{ postgres_host }}"
+          POSTGRES_PORT: "{{ postgres_port }}"
+          POSTGRES_USER: "{{ postgres_user }}"
+          POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_DATABASE: "{{ postgres_database }}"
+          SENTRY_DSN: "{{ passport_sentry_dsn }}"
+        networks:
+          - name: backend
+        volumes:
+          - "{{ passport_conf_dir }}:/etc/passport"
+
+    - name: Update service
+      docker_swarm_service:
+        name: passport
+        image: "{{ passport_image }}:{{ passport_version }}"
+        command: python3 -m passport --conf-dir=/etc/passport server run
+        args:
+          - "--tags={{ env }}"
+          - "--tags=traefik.enable=true"
+          - "--tags=traefik.http.routers.passport.rule=Host(`{{ passport_domain }}`)"
+          - "--tags=traefik.http.routers.passport.entrypoints=web"
+          - "--tags=traefik.http.routers.passport.service=passport"
+          - "--tags=traefik.http.routers.passport.middlewares=passport-redirect@consulcatalog"
+          - "--tags=traefik.http.middlewares.passport-redirect.redirectscheme.scheme=https"
+          - "--tags=traefik.http.middlewares.passport-redirect.redirectscheme.permanent=true"
+          - "--tags=traefik.http.routers.passport-secure.rule=Host(`{{ passport_domain }}`)"
+          - "--tags=traefik.http.routers.passport-secure.entrypoints=websecure"
+          - "--tags=traefik.http.routers.passport-secure.service=passport"
+          - "--tags=traefik.http.routers.passport-secure.tls=true"
+          - "--tags=traefik.http.routers.passport-secure.tls.certresolver=acmeresolver"
+        dns:
+          - "{{ private_network.address }}"
+        env:
+          CONSUL_HOST: "{{ consul_host }}"
+          CONSUL_PORT: "{{ consul_port }}"
+          POSTGRES_HOST: "{{ postgres_host }}"
+          POSTGRES_PORT: "{{ postgres_port }}"
+          POSTGRES_USER: "{{ postgres_user }}"
+          POSTGRES_PASSWORD: "{{ postgres_password }}"
+          POSTGRES_DATABASE: "{{ postgres_database }}"
+          SENTRY_DSN: "{{ passport_sentry_dsn }}"
+        logging:
+          driver: syslog
+          options:
+            syslog-address: unixgram:///dev/log
+            tag: passport
+        networks:
+          - backend
+        replicas: "{{ passport_replicas|default(1) }}"
+        secrets:
+          - secret_name: "passport_private_key"
+            filename: "/etc/passport/passport.key"
+            mode: 0600
+          - secret_name: "passport_public_key"
+            filename: "/etc/passport/passport.key.pub"
+            mode: 0644

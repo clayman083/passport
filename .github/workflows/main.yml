@@ -6,6 +6,9 @@ on:
       - '!refs/tags/*'
     branches:
       - '*'
+  pull_request:
+    branches:
+      - master
 
 jobs:
   tests:

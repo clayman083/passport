@@ -30,7 +30,7 @@ class AppConfig(BaseConfig):
     tokens = config.NestedField(TokenConfig)
 
 
-async def init(app_name: str, config: AppConfig) -> web.Application:
+def init(app_name: str, config: AppConfig) -> web.Application:
     app = web.Application()
 
     app["app_root"] = os.path.dirname(__file__)

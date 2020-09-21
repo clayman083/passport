@@ -1,4 +1,3 @@
-import asyncio
 from pathlib import Path
 
 import click
@@ -21,7 +20,6 @@ from passport.app import AppConfig, init
 @click.pass_context
 def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
     uvloop.install()
-    loop = asyncio.get_event_loop()
 
     if conf_dir:
         conf_path = Path(conf_dir)
@@ -44,11 +42,10 @@ def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
     )
     load(config, providers=[FileValueProvider(conf_path), EnvValueProvider()])
 
-    app = loop.run_until_complete(init("passport", config))
+    app = init("passport", config)
 
     ctx.obj["app"] = app
     ctx.obj["config"] = config
-    ctx.obj["loop"] = loop
 
 
 cli.add_command(server, name="server")

@@ -7,7 +7,7 @@ import ujson
 from passlib.handlers.pbkdf2 import pbkdf2_sha512  # type: ignore
 
 from passport.domain import TokenType, User
-from passport.services.tokens import TokenService
+from passport.services.tokens import TokenGenerator
 from passport.storage.users import users as users_table
 
 
@@ -49,7 +49,7 @@ async def test_registration_success(aiohttp_client, app, json):
     data = {"email": "john@testing.com", "password": "top-secret"}
     client = await aiohttp_client(app)
 
-    url = app.router.named_resources()["api.registration"].url_for()
+    url = app.router.named_resources()["api.users.register"].url_for()
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 201
 
@@ -60,7 +60,7 @@ async def test_registration_failed_without_password(aiohttp_client, app, json):
     data = {"email": "john@testing.com"}
     client = await aiohttp_client(app)
 
-    url = app.router.named_resources()["api.registration"].url_for()
+    url = app.router.named_resources()["api.users.register"].url_for()
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 422
 
@@ -77,7 +77,7 @@ async def test_registration_failed_already_existed(
         {"email": "john@testing.com", "password": "top-secret"}, app
     )
 
-    url = app.router.named_resources()["api.registration"].url_for()
+    url = app.router.named_resources()["api.users.register"].url_for()
     resp = await client.post(url, **prepare_request(data, json))
     assert resp.status == 422
 
@@ -86,7 +86,7 @@ async def test_registration_failed_already_existed(
 @pytest.mark.parametrize("json", [True, False])
 async def test_login_success(aiohttp_client, app, prepare_user, json):
     client = await aiohttp_client(app)
-    url = app.router.named_resources()["api.login"].url_for()
+    url = app.router.named_resources()["api.users.login"].url_for()
 
     data = {"email": "john@testing.com", "password": "top-secret"}
     await prepare_user(data, app)
@@ -102,7 +102,7 @@ async def test_login_success(aiohttp_client, app, prepare_user, json):
 @pytest.mark.parametrize("password", ["", "wrong-password"])
 async def test_login_failed(aiohttp_client, app, prepare_user, json, password):
     client = await aiohttp_client(app)
-    url = app.router.named_resources()["api.login"].url_for()
+    url = app.router.named_resources()["api.users.login"].url_for()
 
     email = "john@testing.com"
 
@@ -117,7 +117,7 @@ async def test_login_failed(aiohttp_client, app, prepare_user, json, password):
 @pytest.mark.parametrize("json", [True, False])
 async def test_login_unregistered(aiohttp_client, app, prepare_user, json):
     client = await aiohttp_client(app)
-    url = app.router.named_resources()["api.login"].url_for()
+    url = app.router.named_resources()["api.users.login"].url_for()
 
     payload = {"email": "peter@missing.com", "password": "some-secret"}
     resp = await client.post(url, **prepare_request(payload, json))
@@ -127,17 +127,16 @@ async def test_login_unregistered(aiohttp_client, app, prepare_user, json):
 @pytest.mark.integration
 async def test_refresh_success(aiohttp_client, app, prepare_user):
     client = await aiohttp_client(app)
-    url = app.router.named_resources()["api.refresh"].url_for()
+    url = app.router.named_resources()["api.tokens.refresh"].url_for()
 
     user = await prepare_user(
         {"email": "john@testing.com", "password": "top-secret"}, app
     )
 
-    token_service = TokenService()
-    refresh_token = token_service.generate_token(
+    generator = TokenGenerator(private_key=app["config"].tokens.private_key)
+    refresh_token = generator.generate(
         user,
         token_type=TokenType.refresh,
-        private_key=app["config"].tokens.private_key,
         expire=app["config"].tokens.refresh_token_expire,
     )
 
@@ -150,7 +149,7 @@ async def test_refresh_success(aiohttp_client, app, prepare_user):
     token = jwt.decode(
         access_token, app["config"].tokens.public_key, algorithms="RS256"
     )
-    assert token["id"] == user.key
+    assert token["user"]["id"] == user.key
     assert token["token_type"] == "access"
 
 
@@ -159,17 +158,16 @@ async def test_refresh_failed_with_wrong_token_type(
     aiohttp_client, app, prepare_user
 ):
     client = await aiohttp_client(app)
-    url = app.router.named_resources()["api.refresh"].url_for()
+    url = app.router.named_resources()["api.tokens.refresh"].url_for()
 
     user = await prepare_user(
         {"email": "john@testing.com", "password": "top-secret"}, app
     )
 
-    token_service = TokenService()
-    refresh_token = token_service.generate_token(
+    generator = TokenGenerator(private_key=app["config"].tokens.private_key)
+    refresh_token = generator.generate(
         user,
         token_type=TokenType.access,
-        private_key=app["config"].tokens.private_key,
         expire=app["config"].tokens.refresh_token_expire,
     )
 
@@ -182,7 +180,7 @@ async def test_refresh_failed_with_wrong_token_type(
 @pytest.mark.parametrize("user_id", ["", 0, "foo" "2", None])
 async def test_refresh_failed(aiohttp_client, app, prepare_user, user_id):
     client = await aiohttp_client(app)
-    url = app.router.named_resources()["api.refresh"].url_for()
+    url = app.router.named_resources()["api.tokens.refresh"].url_for()
 
     now = datetime.utcnow()
 
@@ -208,7 +206,7 @@ async def test_refresh_failed(aiohttp_client, app, prepare_user, user_id):
 @pytest.mark.integration
 async def test_refresh_failed_for_inactive(aiohttp_client, app, prepare_user):
     client = await aiohttp_client(app)
-    url = app.router.named_resources()["api.refresh"].url_for()
+    url = app.router.named_resources()["api.tokens.refresh"].url_for()
 
     user = await prepare_user(
         {
@@ -219,11 +217,10 @@ async def test_refresh_failed_for_inactive(aiohttp_client, app, prepare_user):
         app,
     )
 
-    token_service = TokenService()
-    refresh_token = token_service.generate_token(
+    generator = TokenGenerator(private_key=app["config"].tokens.private_key)
+    refresh_token = generator.generate(
         user,
         token_type=TokenType.refresh,
-        private_key=app["config"].tokens.private_key,
         expire=app["config"].tokens.refresh_token_expire,
     )
 

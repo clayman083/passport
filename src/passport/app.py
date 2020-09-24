@@ -7,9 +7,20 @@ from aiohttp_micro import (  # type: ignore
     AppConfig as BaseConfig,
     setup as setup_micro,
 )
+from aiohttp_openapi import setup as setup_openapi
 from aiohttp_storage import setup as setup_storage, StorageConfig
 
-from passport.handlers import api, auth
+from passport.handlers import auth as auth_endpoints
+from passport.handlers.api import (
+    tokens as token_endpoints,
+    users as user_endpoints,
+)
+
+
+class SessionConfig(config.Config):
+    domain = config.StrField(env="SESSION_DOMAIN")
+    cookie = config.StrField(default="session", env="SESSION_COOKIE")
+    expire = config.IntField(default=30, env="SESSION_EXPIRE")
 
 
 class TokenConfig(config.Config):
@@ -27,7 +38,8 @@ class TokenConfig(config.Config):
 
 class AppConfig(BaseConfig):
     db = config.NestedField[StorageConfig](StorageConfig)
-    tokens = config.NestedField(TokenConfig)
+    sessions = config.NestedField[SessionConfig](SessionConfig)
+    tokens = config.NestedField[TokenConfig](TokenConfig)
 
 
 def init(app_name: str, config: AppConfig) -> web.Application:
@@ -43,24 +55,38 @@ def init(app_name: str, config: AppConfig) -> web.Application:
         config=app["config"].db,
     )
 
-    app.router.add_routes(
-        [
-            web.put("/auth/identify", auth.identify, name="auth.identify"),
-            web.post("/auth/login", auth.login, name="auth.login"),
-            web.post("/auth/logout", auth.logout, name="auth.logout"),
-            web.get("/auth/profile", auth.profile, name="auth.profile"),
-        ]
+    # Public user endpoints
+    app.router.add_post("/auth/login", auth_endpoints.login, name="auth.login")
+    app.router.add_post(
+        "/auth/logout", auth_endpoints.logout, name="auth.logout"
     )
 
-    app.router.add_routes(
-        [
-            web.get("/api/me", api.me, name="api.me"),
-            web.post("/api/login", api.login, name="api.login"),
-            web.post(
-                "/api/register", api.registration, name="api.registration"
-            ),
-            web.post("/api/tokens/refresh", api.refresh, name="api.refresh"),
-        ]
+    # User API endpoints
+    app.router.add_get(
+        "/api/profile", user_endpoints.profile, name="api.users.profile"
+    )
+    app.router.add_post(
+        "/api/login", user_endpoints.login, name="api.users.login"
+    )
+    app.router.add_post(
+        "/api/register", user_endpoints.register, name="api.users.register"
+    )
+
+    # Manage tokens endpoints
+    app.router.add_get(
+        "/api/tokens/access", token_endpoints.access, name="api.tokens.access"
+    )
+    app.router.add_post(
+        "/api/tokens/refresh",
+        token_endpoints.refresh,
+        name="api.tokens.refresh",
+    )
+
+    setup_openapi(
+        app,
+        title="Passport",
+        version=app["distribution"].version,
+        description="Passport service API",
     )
 
     return app

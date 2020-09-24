@@ -2,17 +2,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional
 
+from aiohttp_micro.entities import Entity
 from passlib.handlers.pbkdf2 import pbkdf2_sha512  # type: ignore
 
 
 class TokenType(Enum):
     access = "access"
     refresh = "refresh"
-
-
-@dataclass
-class Entity:
-    key: int
 
 
 @dataclass

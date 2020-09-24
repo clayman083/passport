@@ -6,31 +6,48 @@ from passport.domain import TokenType, User
 from passport.exceptions import BadToken, TokenExpired
 
 
-class TokenService:
-    def generate_token(
-        self, user: User, token_type: TokenType, private_key: str, expire: int
+class TokenGenerator:
+    __slots__ = ("_private_key",)
+
+    def __init__(self, private_key: str) -> None:
+        self._private_key = private_key
+
+    def generate(
+        self,
+        user: User,
+        token_type: TokenType = TokenType.access,
+        expire: int = 600,
     ) -> str:
         now = datetime.utcnow()
 
         return jwt.encode(
             {
-                "id": user.key,
-                "email": user.email,
+                "user": {"id": user.key, "email": user.email},
                 "token_type": token_type.value,
                 "iss": "urn:passport",
                 "exp": now + timedelta(seconds=expire),
                 "iat": now,
             },
-            private_key,
+            self._private_key,
             algorithm="RS256",
         ).decode("utf-8")
 
-    def decode_token(
-        self, token: str, token_type: TokenType, public_key: str
+
+class TokenDecoder:
+    __slots__ = ("_public_key",)
+
+    def __init__(self, public_key: str) -> None:
+        self._public_key = public_key
+
+    def decode(
+        self, token: str, token_type: TokenType = TokenType.access
     ) -> User:
         try:
             token_data = jwt.decode(
-                token, public_key, issuer="urn:passport", algorithms="RS256"
+                token,
+                self._public_key,
+                issuer="urn:passport",
+                algorithms="RS256",
             )
         except jwt.ExpiredSignatureError:
             raise TokenExpired()
@@ -40,12 +57,12 @@ class TokenService:
         if token_data.get("token_type", None) != token_type.value:
             raise BadToken()
 
-        if "id" in token_data and token_data["id"]:
+        if "user" in token_data:
             try:
-                user_key = int(token_data["id"])
+                user_key = int(token_data["user"].get("id", None))
             except ValueError:
                 raise BadToken()
         else:
             raise BadToken()
 
-        return User(key=user_key, email=token_data["email"])
+        return User(key=user_key, email=token_data["user"].get("email", ""))

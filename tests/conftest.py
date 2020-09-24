@@ -33,27 +33,27 @@ oAvGVHdn+B1JJBkTJccu9hOAWjyXX5C2QuuC/fNKmsqxyQ==
 
 
 @pytest.yield_fixture(scope="function")
-def app(loop, pg_server, config):
+def app(pg_server, config):
     config.db.host = pg_server["params"]["host"]
     config.db.port = pg_server["params"]["port"]
     config.db.user = pg_server["params"]["user"]
     config.db.password = pg_server["params"]["password"]
     config.db.database = pg_server["params"]["database"]
 
-    app = loop.run_until_complete(init("passport", config))
+    app = init("passport", config)
 
     with storage(config=app["config"].db, root=app["storage_root"]):
         yield app
 
 
 @pytest.yield_fixture(scope="function")
-def prepared_app(loop, app):
+async def prepared_app(app):
     runner = web.AppRunner(app)
-    loop.run_until_complete(runner.setup())
+    await runner.setup()
 
     yield app
 
-    loop.run_until_complete(runner.cleanup())
+    await runner.cleanup()
 
 
 @pytest.fixture(scope="function")

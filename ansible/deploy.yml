@@ -104,6 +104,7 @@
           POSTGRES_PASSWORD: "{{ postgres_password }}"
           POSTGRES_DATABASE: "{{ postgres_database }}"
           SENTRY_DSN: "{{ passport_sentry_dsn }}"
+          SESSION_DOMAIN: ".{{ domain }}"
         networks:
           - name: backend
         volumes:

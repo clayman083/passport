@@ -12,6 +12,7 @@ from aiohttp_storage import setup as setup_storage, StorageConfig
 
 from passport.handlers import auth as auth_endpoints
 from passport.handlers.api import (
+    keys,
     tokens as token_endpoints,
     users as user_endpoints,
 )
@@ -60,6 +61,8 @@ def init(app_name: str, config: AppConfig) -> web.Application:
     app.router.add_post(
         "/auth/logout", auth_endpoints.logout, name="auth.logout"
     )
+
+    app.router.add_get("/api/keys", keys, name="api.keys")
 
     # User API endpoints
     app.router.add_get(

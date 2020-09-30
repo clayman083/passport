@@ -38,6 +38,15 @@ def cli(ctx, conf_dir: str = None, debug: bool = False) -> None:
                 "password": "passport",
                 "database": "passport",
             },
+            "tokens": {
+                "access_token_expire": 900,
+                "refresh_token_expire": 43200,
+            },
+            "sessions": {
+                "domain": ".clayman.pro",
+                "cookie": "session",
+                "expire": 30,
+            },
         }
     )
     load(config, providers=[FileValueProvider(conf_path), EnvValueProvider()])

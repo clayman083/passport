@@ -65,4 +65,6 @@ class TokenDecoder:
         else:
             raise BadToken()
 
-        return User(key=user_key, email=token_data["user"].get("email", ""))
+        return User(
+            key=user_key, email=token_data["user"].get("email", "")
+        )  # type: ignore

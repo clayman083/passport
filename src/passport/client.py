@@ -48,8 +48,14 @@ async def passport_ctx(app: web.Application) -> AsyncGenerator[None, None]:
         app["logger"].error("Passport host should be defined")
         raise RuntimeError("Passport host should be defined")
 
+    verify_ssl = True
+    if app["config"].debug:
+        verify_ssl = False
+
+    url = f"{config.passport.host}/api/keys"
+
     async with ClientSession() as session:
-        async with session.get(f"{config.passport.host}/api/keys") as resp:
+        async with session.get(url, ssl=verify_ssl) as resp:
             if resp.status != 200:
                 app["logger"].error(
                     "Fetch passport keys failed", status=resp.status

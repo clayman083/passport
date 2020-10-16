@@ -1,19 +1,19 @@
 from typing import Dict
 
 from aiohttp import web
-from aiohttp_micro.exceptions import (
+from aiohttp_micro.exceptions import (  # type: ignore
     EntityAlreadyExist,
     EntityNotFound,
-)  # type: ignore
-from aiohttp_micro.handlers import (
+)
+from aiohttp_micro.handlers import (  # type: ignore
     json_response,
     validate_payload,
-)  # type: ignore
-from aiohttp_openapi import (
+)
+from aiohttp_openapi import (  # type: ignore
     JSONResponse,
     register_operation,
     RequestBody,
-)  # type: ignore
+)
 
 from passport.domain import TokenType
 from passport.exceptions import Forbidden

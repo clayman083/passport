@@ -1,6 +1,6 @@
-from aiohttp_storage.storage import (
+from aiohttp_storage.storage import (  # type: ignore
     DBStorage as AbstractDBStorage,
-)  # type: ignore
+)
 from databases import Database
 
 from passport.domain.storage import Storage

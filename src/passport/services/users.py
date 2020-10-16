@@ -15,7 +15,7 @@ class UserService:
         if exist:
             raise EntityAlreadyExist()
 
-        user = User(
+        user = User(  # type: ignore
             key=0, email=email, password="", is_superuser=False, permissions=[]
         )
         user.set_password(password)

@@ -1,7 +1,7 @@
 from aiohttp import web
-from aiohttp_micro.handlers import json_response
-from aiohttp_openapi import JSONResponse, register_operation
-from marshmallow import fields, Schema
+from aiohttp_micro.handlers import json_response  # type: ignore
+from aiohttp_openapi import JSONResponse, register_operation  # type: ignore
+from marshmallow import fields, Schema  # type: ignore
 
 
 class KeysResponseSchema(Schema):

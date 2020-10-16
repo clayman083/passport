@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional
 
-from aiohttp_micro.entities import Entity
+from aiohttp_micro.entities import Entity  # type: ignore
 from passlib.handlers.pbkdf2 import pbkdf2_sha512  # type: ignore
 
 

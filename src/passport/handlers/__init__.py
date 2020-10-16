@@ -1,9 +1,9 @@
 import functools
 
 from aiohttp import web
-from aiohttp_micro.exceptions import EntityNotFound
-from aiohttp_micro.schemas import EntitySchema
-from aiohttp_openapi import Parameter, ParameterIn
+from aiohttp_micro.exceptions import EntityNotFound  # type: ignore
+from aiohttp_micro.schemas import EntitySchema  # type: ignore
+from aiohttp_openapi import Parameter, ParameterIn  # type: ignore
 from marshmallow import fields, Schema
 
 from passport.domain import User

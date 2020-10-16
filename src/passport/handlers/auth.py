@@ -3,8 +3,11 @@ from datetime import datetime, timedelta
 from typing import Dict
 
 from aiohttp import web
-from aiohttp_micro.exceptions import EntityNotFound
-from aiohttp_micro.handlers import json_response, validate_payload
+from aiohttp_micro.exceptions import EntityNotFound  # type: ignore
+from aiohttp_micro.handlers import (
+    json_response,
+    validate_payload,
+)  # type: ignore
 
 from passport.exceptions import Forbidden
 from passport.handlers import CredentialsPayloadSchema, session_required

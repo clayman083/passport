@@ -2,7 +2,7 @@ from datetime import datetime
 
 import sqlalchemy  # type: ignore
 from aiohttp_micro.exceptions import EntityNotFound  # type: ignore
-from aiohttp_storage.storage import metadata
+from aiohttp_storage.storage import metadata  # type: ignore
 from databases import Database
 from sqlalchemy import func
 from sqlalchemy.orm.query import Query  # type: ignore
@@ -71,7 +71,9 @@ class UsersDBRepo(UsersRepo):
         )
 
     def _process_row(self, row) -> User:
-        return User(key=row["id"], email=row["email"], password=row["password"])
+        return User(
+            key=row["id"], email=row["email"], password=row["password"]
+        )  # type: ignore
 
     async def fetch_by_key(self, key: int) -> User:
         query = self.get_query().where(users.c.id == key)

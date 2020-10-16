@@ -38,7 +38,9 @@ def prepare_user():
             },
         )
 
-        return User(key=key, email=data["email"], password=data["password"])
+        return User(
+            key=key, email=data["email"], password=data["password"]
+        )  # type: ignore
 
     return go
 

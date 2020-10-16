@@ -1,7 +1,7 @@
 from aiohttp import web
-from aiohttp_micro.exceptions import EntityNotFound
-from aiohttp_micro.handlers import json_response
-from aiohttp_openapi import JSONResponse, register_operation
+from aiohttp_micro.exceptions import EntityNotFound  # type: ignore
+from aiohttp_micro.handlers import json_response  # type: ignore
+from aiohttp_openapi import JSONResponse, register_operation  # type: ignore
 
 from passport.domain import TokenType
 from passport.exceptions import BadToken

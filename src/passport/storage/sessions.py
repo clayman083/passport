@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import sqlalchemy  # type: ignore
-from aiohttp_storage.storage import metadata
+from aiohttp_storage.storage import metadata  # type: ignore
 from databases import Database
 
 from passport.domain import User

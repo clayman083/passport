@@ -1,7 +1,7 @@
 import faker  # type: ignore
 import pytest  # type: ignore
 from aiohttp import web
-from aiohttp_storage.tests import storage
+from aiohttp_storage.tests import storage  # type: ignore
 
 from passport.app import AppConfig, init
 

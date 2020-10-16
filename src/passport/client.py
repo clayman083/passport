@@ -2,7 +2,7 @@ import functools
 from typing import AsyncGenerator
 
 from aiohttp import ClientSession, web
-from config import Config, StrField
+from config import Config, StrField  # type: ignore
 
 from passport.domain import User
 from passport.exceptions import BadToken, TokenExpired

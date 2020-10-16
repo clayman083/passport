@@ -7,8 +7,11 @@ from aiohttp_micro import (  # type: ignore
     AppConfig as BaseConfig,
     setup as setup_micro,
 )
-from aiohttp_openapi import setup as setup_openapi
-from aiohttp_storage import setup as setup_storage, StorageConfig
+from aiohttp_openapi import setup as setup_openapi  # type: ignore
+from aiohttp_storage import (
+    setup as setup_storage,
+    StorageConfig,
+)  # type: ignore
 
 from passport.handlers import auth as auth_endpoints
 from passport.handlers.api import (

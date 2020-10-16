@@ -114,7 +114,7 @@
       docker_swarm_service:
         name: passport
         image: "{{ passport_image }}:{{ passport_version }}"
-        command: python3 -m passport --conf-dir=/etc/passport server run
+        command: python3 -m passport --conf-dir=/etc/passport server run --host=0.0.0.0
         args:
           - "--tags={{ env }}"
           - "--tags=traefik.enable=true"

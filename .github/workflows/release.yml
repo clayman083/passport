@@ -77,7 +77,7 @@ jobs:
           architecture: 'x64'
 
       - name: Install requirements
-        run: pip install ansible==2.10.1 ansible-modules-hashivault==4.5.6
+        run: pip install httpie ansible==2.10.1 ansible-modules-hashivault==4.5.6
 
       - name: Deploy new version
         env:
@@ -89,7 +89,7 @@ jobs:
           VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
           VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
         run: |
-          export VAULT_TOKEN="$(vault write -field=token /auth/approle/login role_id=$VAULT_ROLE_ID secret_id=$VAULT_SECRET_ID)"
+          export VAULT_TOKEN="$(httpie $VAULT_ADDR/v1/auth/approle/login role_id=$VAULT_ROLE_ID secret_id=$VAULT_SECRET_ID | python3 -c "import sys,json; print(json.load(sys.stdin)['auth']['client_token'])")"
           ansible-playbook -i ansible/inventory ansible/deploy.yml
 
       - name: Send notification to Telegram

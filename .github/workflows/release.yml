@@ -89,7 +89,7 @@ jobs:
           VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
           VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
         run: |
-          export VAULT_TOKEN="$(httpie $VAULT_ADDR/v1/auth/approle/login role_id=$VAULT_ROLE_ID secret_id=$VAULT_SECRET_ID | python3 -c "import sys,json; print(json.load(sys.stdin)['auth']['client_token'])")"
+          export VAULT_TOKEN="$(http $VAULT_ADDR/v1/auth/approle/login role_id=$VAULT_ROLE_ID secret_id=$VAULT_SECRET_ID | python3 -c "import sys,json; print(json.load(sys.stdin)['auth']['client_token'])")"
           ansible-playbook -i ansible/inventory ansible/deploy.yml
 
       - name: Send notification to Telegram

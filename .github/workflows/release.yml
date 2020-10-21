@@ -67,33 +67,29 @@ jobs:
     steps:
       - uses: actions/checkout@master
 
-      - name: Prepare ansible config secrets
-        env:
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-        run: |
-          mkdir .ssh
-          echo "$SSH_KEY" > .ssh/id_rsa
-          chmod 600 .ssh/id_rsa
-
-      - name: Prepare ansible vault password
-        env:
-          VAULT_PASSWORD: ${{ secrets.VAULT_PASSWORD  }}
-        run: |
-          echo "$VAULT_PASSWORD" > .vault_password
-          chmod 600 .vault_password
-
       - name: Set output
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.9'
+          architecture: 'x64'
+
+      - name: Install requirements
+        run: pip install ansible==2.10.1 ansible-modules-hashivault==4.5.6
+
       - name: Deploy new version
         env:
           ANSIBLE_HOST_KEY_CHECKING: False
-          ANSIBLE_VAULT_PASSWORD_FILE: .vault_password
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           PASSPORT_VERSION: ${{ steps.vars.outputs.tag }}
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
         run: |
+          export VAULT_TOKEN="$(vault write -field=token /auth/approle/login role_id=$VAULT_ROLE_ID secret_id=$VAULT_SECRET_ID)"
           ansible-playbook -i ansible/inventory ansible/deploy.yml
 
       - name: Send notification to Telegram

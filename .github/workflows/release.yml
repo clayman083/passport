@@ -78,7 +78,7 @@ jobs:
 
       - name: Get Vault token
         id: vault
-        uses: clayman083/vault-token
+        uses: clayman083/vault-token@master
         with:
           vault_addr: ${{ secrets.VAULT_ADDR }}
           role_id: ${{ secrets.VAULT_ROLE_ID }}

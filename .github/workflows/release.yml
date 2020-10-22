@@ -76,6 +76,11 @@ jobs:
           python-version: '3.9'
           architecture: 'x64'
 
+      - name: Install requirements
+        run: |
+          pip install poetry
+          poetry install
+
       - name: Get Vault token
         id: vault
         uses: clayman083/vault-token@master
@@ -83,9 +88,6 @@ jobs:
           vault_addr: ${{ secrets.VAULT_ADDR }}
           role_id: ${{ secrets.VAULT_ROLE_ID }}
           secret_id: ${{ secrets.VAULT_SECRET_ID }}
-
-      - name: Install requirements
-        run: python3 -m pip install -q ansible==2.10.1 ansible-modules-hashivault==4.5.6
 
       - name: Deploy new version
         env:
@@ -96,7 +98,7 @@ jobs:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
           VAULT_TOKEN: ${{ steps.vault.output.token }}
         run: |
-          ansible-playbook -i ansible/inventory ansible/deploy.yml -e 'ansible_python_interpreter=/usr/bin/python3'
+          poetry run ansible-playbook -i ansible/inventory ansible/deploy.yml
 
       - name: Send notification to Telegram
         if: always()

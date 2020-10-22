@@ -76,8 +76,16 @@ jobs:
           python-version: '3.9'
           architecture: 'x64'
 
+      - name: Get Vault token
+        id: vault
+        uses: https://github.com/clayman083/vault-token
+        with:
+          vault_addr: ${{ secrets.VAULT_ADDR }}
+          role_id: ${{ secrets.VAULT_ROLE_ID }}
+          secret_id: ${{ secrets.VAULT_SECRET_ID }}
+
       - name: Install requirements
-        run: pip install httpie ansible==2.10.1 ansible-modules-hashivault==4.5.6
+        run: python3 -m pip install -q ansible==2.10.1 ansible-modules-hashivault==4.5.6
 
       - name: Deploy new version
         env:
@@ -86,10 +94,8 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           PASSPORT_VERSION: ${{ steps.vars.outputs.tag }}
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
-          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          VAULT_TOKEN: ${{ steps.vault.output.token }}
         run: |
-          export VAULT_TOKEN="$(http $VAULT_ADDR/v1/auth/approle/login role_id=$VAULT_ROLE_ID secret_id=$VAULT_SECRET_ID | python3 -c "import sys,json; print(json.load(sys.stdin)['auth']['client_token'])")"
           ansible-playbook -i ansible/inventory ansible/deploy.yml
 
       - name: Send notification to Telegram

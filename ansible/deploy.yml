@@ -34,8 +34,6 @@
   become: true
 
   vars:
-    domain: clayman.pro
-
     consul_host: "consul.service.consul"
     consul_port: "8500"
 
@@ -45,8 +43,9 @@
     postgres_password: "{{ lookup('hashivault', 'services/passport', 'postgres_password', mount_point='/secrets', version=2) }}"
     postgres_database: "passport"
 
-    docker_username: "{{ lookup('env','DOCKER_USERNAME') }}"
-    docker_password: "{{ lookup('env','DOCKER_PASSWORD') }}"
+    docker_registry: ghcr.io
+    docker_username: "{{ lookup('hashivault', 'services/ghcr', 'user', mount_point='/secrets', version=2) }}"
+    docker_password: "{{ lookup('hashivault', 'services/ghcr', 'password', mount_point='/secrets', version=2) }}"
 
     private_network: "{{ ansible_eth1['ipv4'] }}"
 
@@ -98,7 +97,7 @@
 
     - name: Log into private registry
       docker_login:
-        registry: ghcr.io
+        registry: "{{ docker_registry }}"
         username: "{{ docker_username }}"
         password: "{{ docker_password }}"
 

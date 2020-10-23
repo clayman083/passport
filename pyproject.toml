@@ -4,7 +4,7 @@ build-backend = "poetry.masonry.api"
 
 [tool.poetry]
 name = "passport"
-version = "2.7.5"
+version = "2.7.0"
 description = "User identification service"
 authors = ["Kirill Sumorokov <sumorokov.k@gmail.com>"]
 license = "MIT"
@@ -22,9 +22,7 @@ pyjwt = {extras = ["crypto"], version = "1.7.1"}
 python = "^3.8"
 
 [tool.poetry.dev-dependencies]
-ansible = "^2.10.0"
 ansible-lint = "^4.3.5"
-ansible-modules-hashivault = "^4.5.6"
 black = "^19.10b0"
 coverage = "*"
 faker = "*"
@@ -41,5 +39,3 @@ pytest-aiohttp = "*"
 pytest-postgres = "*"
 rope = "*"
 ipython = "*"
-jinja2 = "*"
-pyyaml = "*"

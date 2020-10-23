@@ -74,7 +74,7 @@ jobs:
           args: ${{ github.repository }} build version `${{ steps.vars.outputs.tag }}` - ${{ job.status }}
 
   deploy:
-    needs: [publish]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master

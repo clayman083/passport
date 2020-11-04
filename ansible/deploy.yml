@@ -135,18 +135,6 @@
         command: python3 -m passport --conf-dir=/etc/passport server run --host=0.0.0.0
         args:
           - "--tags={{ env }}"
-          - "--tags=traefik.enable=true"
-          - "--tags=traefik.http.routers.passport.rule=Host(`{{ passport_domain }}`)"
-          - "--tags=traefik.http.routers.passport.entrypoints=web"
-          - "--tags=traefik.http.routers.passport.service=passport"
-          - "--tags=traefik.http.routers.passport.middlewares=passport-redirect@consulcatalog"
-          - "--tags=traefik.http.middlewares.passport-redirect.redirectscheme.scheme=https"
-          - "--tags=traefik.http.middlewares.passport-redirect.redirectscheme.permanent=true"
-          - "--tags=traefik.http.routers.passport-secure.rule=Host(`{{ passport_domain }}`)"
-          - "--tags=traefik.http.routers.passport-secure.entrypoints=websecure"
-          - "--tags=traefik.http.routers.passport-secure.service=passport"
-          - "--tags=traefik.http.routers.passport-secure.tls=true"
-          - "--tags=traefik.http.routers.passport-secure.tls.certresolver=acmeresolver"
         dns:
           - "{{ private_network.address }}"
         env:
